@@ -75,6 +75,8 @@ public:
     // 在 httplib content provider 线程阻塞服务; 返回 false 结束响应
     // heartbeat: GET 长连接流启用（30s 注释行保活）
     bool serve(httplib::DataSink& sink, bool heartbeat) {
+        // 初始注释行: 立即 flush 响应头 (httplib 缓冲, 否则客户端收不到 200)
+        if (!sink.write(":\n", 2)) return false;
         for (;;) {
             Event evt;
             {
@@ -146,7 +148,17 @@ public:
             res.set_content("Session termination not supported", "text/plain");
         });
 
-        svr.set_error_handler([](const httplib::Request&, httplib::Response& res) {
+        // 全量请求日志: 定位客户端实际请求的路径/头
+        svr.set_pre_routing_handler([](const httplib::Request& req, httplib::Response&) {
+            LOG_INFO("REQ {} {} session={} accept={}",
+                     req.method, req.path,
+                     req.get_header_value("Mcp-Session-Id"),
+                     req.get_header_value("Accept"));
+            return httplib::Server::HandlerResponse::Unhandled;
+        });
+
+        svr.set_error_handler([](const httplib::Request& req, httplib::Response& res) {
+            LOG_WARN("HTTP {} for {} {}", res.status, req.method, req.path);
             if (res.status == 404) res.set_content("Not Found", "text/plain");
         });
 
@@ -355,15 +367,11 @@ private:
         }
         if (!check_origin(req, res)) return;
         std::string sid = req.get_header_value("Mcp-Session-Id");
-        if (sid.empty()) {
-            res.status = 404;
-            res.set_content("Session required for SSE stream", "text/plain");
-            return;
-        }
-        if (!check_session(req, res)) return;
+        // 无 session 也开流（客户端 GET 可能不带 session; POST 已宽松, GET 对齐）
+        if (!sid.empty() && !check_session(req, res)) return;
 
         auto stream = std::make_shared<SseStream>();
-        register_get_stream(sid, stream);
+        if (!sid.empty()) register_get_stream(sid, stream);
         LOG_INFO("get sse stream registered for session {}", sid);
 
         res.set_header("Cache-Control", "no-cache");
