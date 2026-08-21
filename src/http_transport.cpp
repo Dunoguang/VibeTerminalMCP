@@ -334,10 +334,10 @@ private:
             if (!check_session(req, res)) return;
         }
 
-        // 通知: 204 No Content (对齐原版 shell-mcp)
+        // 通知: 202 Accepted (SDK 期望; initialized 202 触发 GET 流尝试 → 405 降级 JSON-only)
         if (is_notification) {
-            LOG_DEBUG("http notification: {} -> 204", method);
-            res.status = 204;
+            LOG_DEBUG("http notification: {} -> 202", method);
+            res.status = 202;
             return;
         }
 
@@ -420,63 +420,14 @@ private:
             });
     }
 
-    // ---------- GET /mcp: SSE 长连接流（2025-06-18 兼容; 服务端→客户端推送） ----------
-    // 铁律: 必须 Accept: text/event-stream + 有效 session, 否则快速失败——
-    // 开永不结束的流会让客户端 HTTP 请求永久挂起
+    // ---------- GET: 一律 405 快速失败 ----------
+    // 已知正常基线 (M1.5): GET=405 宿主客户端工作正常
+    // 官方 Kotlin SDK isNonRetryableSseError: 404/405 → "stream disabled"
+    // → 非重试, 自动降级 JSON-only 模式 (POST 通道不受影响)
     void handle_get(const httplib::Request& req, httplib::Response& res) {
-        if (!wants_sse(req)) {
-            res.status = 405;
-            res.set_content("SSE stream requires Accept: text/event-stream", "text/plain");
-            return;
-        }
-        if (!check_origin(req, res)) return;
-        std::string sid = req.get_header_value("Mcp-Session-Id");
-        // 无 session: SSE 流只发 endpoint (老式握手) + JSON-RPC 消息
-        // 铁律: 客户端把流上所有非 endpoint 事件当 JSON-RPC 解析 (RikkaHub 源码),
-        // connected/ping 等非 JSON-RPC 事件会让客户端 SerializationException
-        if (sid.empty()) {
-            auto stream = std::make_shared<SseStream>();
-            // 1. endpoint 事件: 告知客户端 POST 地址 (带 sessionId, 对齐原版)
-            stream->push_endpoint("/message?sessionId=" + random_session_id());
-            // 2. server_info JSON-RPC 消息 (id: server_info, 合法 JSON-RPC)
-            json si = {
-                {"jsonrpc", "2.0"},
-                {"id", "server_info"},
-                {"result", {
-                    {"protocolVersion", "2025-11-25"},
-                    {"capabilities", {{"tools", {{"listChanged", false}}}}},
-                    {"serverInfo", {{"name", "shell-mcp-server"}, {"version", "0.1.0"}}},
-                }},
-            };
-            stream->push(si.dump());
-            res.set_header("Cache-Control", "no-cache, no-store, must-revalidate");
-            res.set_header("Pragma", "no-cache");
-            res.set_header("X-Accel-Buffering", "no");
-            res.set_content_provider(
-                "text/event-stream",
-                [stream](size_t, httplib::DataSink& sink) -> bool {
-                    bool ok = stream->serve(sink, /*heartbeat=*/true);
-                    stream->close();
-                    return ok;
-                });
-            return;
-        }
-        if (!check_session(req, res)) return;
-
-        auto stream = std::make_shared<SseStream>();
-        register_get_stream(sid, stream);
-        LOG_INFO("get sse stream registered for session {}", sid);
-
-        res.set_header("Cache-Control", "no-cache");
-        res.set_header("X-Accel-Buffering", "no");
-        res.set_header("Connection", "keep-alive");
-        res.set_content_provider(
-            "text/event-stream",
-            [stream](size_t, httplib::DataSink& sink) -> bool {
-                bool ok = stream->serve(sink, /*heartbeat=*/true);
-                stream->close();
-                return ok;
-            });
+        (void)req;
+        res.status = 405;
+        res.set_content("SSE stream not supported; use POST " + std::string(kEndpoint), "text/plain");
     }
 };
 

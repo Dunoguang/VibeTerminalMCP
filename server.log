@@ -146,3 +146,26 @@
 [INFO 100034849] REQ POST /message session= accept=*/*
 [INFO 100034849] initialize from rikkahub-sim 1 (protocolVersion=2025-11-25)
 [INFO 100034849] session created: 666d50b62b851d63b6b071f28189b6f3 (1)
+[INFO 100054738] REQ GET /sse session= accept=application/json,text/event-stream
+[INFO 100054746] REQ POST /message session= accept=application/json
+[INFO 100054746] initialize from ShellMcpCpp 1.0 (protocolVersion=2025-11-25)
+[INFO 100054747] session created: 9696bbcde472b233a73734baa34cd701 ("313972ef145b4d3a9d2119f6bce92dd8")
+[INFO 100074679] REQ GET /mcp session= accept=application/json,text/event-stream
+[INFO 100074688] REQ POST /message session= accept=application/json
+[INFO 100074688] initialize from ShellMcpCpp 1.0 (protocolVersion=2025-11-25)
+[INFO 100074688] session created: 25a425661b7526efd5a7f1dd56d79379 ("5011404d39e0467aada5bfd2778312bc")
+[INFO 100134695] REQ GET /mcp session= accept=application/json,text/event-stream
+[INFO 100134703] REQ POST /message session= accept=application/json
+[INFO 100134703] initialize from ShellMcpCpp 1.0 (protocolVersion=2025-11-25)
+[INFO 100134703] session created: 7e38a596216cf787308d76a1a0b8d98d ("547fc7f5ea9548cbbb8a01491d75a81a")
+[INFO 100305687] shell-mcp-server (C++) starting, mode=http protocol=2025-06-18
+[INFO 100305688] http transport: listening on http://127.0.0.1:8001/mcp
+[INFO 100306766] REQ GET /mcp session= accept=application/json,text/event-stream
+[WARN 100306766] HTTP 405 for GET /mcp
+[INFO 100306805] REQ POST /mcp session= accept=application/json, text/event-stream
+[INFO 100306806] initialize from sdksim 1 (protocolVersion=2025-11-25)
+[INFO 100306806] session created: 161f5c64cbb2de2806e023b3ed817020 (1)
+[INFO 100306826] REQ POST /mcp session=161f5c64cbb2de2806e023b3ed817020 accept=application/json, text/event-stream
+[INFO 100306858] REQ POST /mcp session=161f5c64cbb2de2806e023b3ed817020 accept=application/json, text/event-stream
+[INFO 100306895] REQ POST /mcp session=161f5c64cbb2de2806e023b3ed817020 accept=*/*
+[INFO 100306895] execute_command: timeout=30000ms cmd=echo baseline-ok
