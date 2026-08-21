@@ -10,7 +10,7 @@ namespace mcp {
 namespace {
 // 本项目支持的协议版本
 constexpr const char* kProtocolVersion = "2025-06-18";
-const std::vector<std::string> kSupportedVersions = {"2025-06-18", "2024-11-05"};
+const std::vector<std::string> kSupportedVersions = {"2025-11-25", "2025-06-18", "2024-11-05"};
 
 constexpr int64_t kDefaultTimeoutMs = 30000;
 

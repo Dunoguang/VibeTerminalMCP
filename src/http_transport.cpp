@@ -19,7 +19,7 @@ namespace mcp {
 
 namespace {
 constexpr const char* kEndpoint = "/mcp";
-const std::vector<std::string> kSupportedVersions = {"2025-06-18", "2024-11-05"};
+const std::vector<std::string> kSupportedVersions = {"2025-11-25", "2025-06-18", "2024-11-05"};
 constexpr int kSseHeartbeatSec = 30;  // GET 流心跳间隔（SSE 注释行）
 
 std::string random_session_id() {
@@ -345,11 +345,23 @@ private:
     }
 
     // ---------- GET /mcp: SSE 长连接流（2025-06-18 兼容; 服务端→客户端推送） ----------
+    // 铁律: 必须 Accept: text/event-stream + 有效 session, 否则快速失败——
+    // 开永不结束的流会让客户端 HTTP 请求永久挂起
     void handle_get(const httplib::Request& req, httplib::Response& res) {
+        if (!wants_sse(req)) {
+            res.status = 405;
+            res.set_content("SSE stream requires Accept: text/event-stream", "text/plain");
+            return;
+        }
         if (!check_origin(req, res)) return;
+        std::string sid = req.get_header_value("Mcp-Session-Id");
+        if (sid.empty()) {
+            res.status = 404;
+            res.set_content("Session required for SSE stream", "text/plain");
+            return;
+        }
         if (!check_session(req, res)) return;
 
-        std::string sid = req.get_header_value("Mcp-Session-Id");
         auto stream = std::make_shared<SseStream>();
         register_get_stream(sid, stream);
         LOG_INFO("get sse stream registered for session {}", sid);

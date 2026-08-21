@@ -28,3 +28,10 @@
 [WARN 98524212] unknown session id: deadbeef, 404
 [INFO 98524262] get sse stream registered for session 
 [INFO 98526256] execute_command: timeout=30000ms cmd=echo compat-ok
+[INFO 98541327] get sse stream registered for session 
+[INFO 98561788] get sse stream registered for session 
+[INFO 98659529] shell-mcp-server (C++) starting, mode=http protocol=2025-06-18
+[INFO 98659529] http transport: listening on http://127.0.0.1:8001/mcp
+[INFO 98660654] initialize from host-client 1 (protocolVersion=2025-11-25)
+[INFO 98660655] session created: 65d91bcc76e503006fdbe42af3c7c114 (1)
+[INFO 98660830] execute_command: timeout=30000ms cmd=echo post-ok
