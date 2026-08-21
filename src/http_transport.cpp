@@ -367,8 +367,9 @@ private:
         }
         if (!check_origin(req, res)) return;
         std::string sid = req.get_header_value("Mcp-Session-Id");
-        // 无 session: 200 + text/event-stream + 立即发一条事件后关流
-        // (客户端校验 Content-Type 必须 SSE; 流必须快速结束否则挂起)
+        // 无 session: 200 + text/event-stream + 保持流 + 立即发真实事件 + 心跳
+        // (客户端: 校验 Content-Type 必须 SSE; 期望持续连接; 关流会被视为失败重试;
+        //  只发注释行被视为无消息; 真实事件=连接确认信号)
         if (sid.empty()) {
             auto stream = std::make_shared<SseStream>();
             json msg = {
@@ -377,13 +378,14 @@ private:
                 {"params", {{"level", "info"}, {"data", "SSE stream connected"}}},
             };
             stream->push(msg.dump());
-            stream->close();  // 事件发出后流结束
             res.set_header("Cache-Control", "no-cache");
             res.set_header("X-Accel-Buffering", "no");
             res.set_content_provider(
                 "text/event-stream",
                 [stream](size_t, httplib::DataSink& sink) -> bool {
-                    return stream->serve(sink, /*heartbeat=*/false);
+                    bool ok = stream->serve(sink, /*heartbeat=*/true);
+                    stream->close();
+                    return ok;
                 });
             return;
         }
