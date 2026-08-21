@@ -247,6 +247,9 @@ private:
     };
     std::mutex sessions_mutex_;
     std::unordered_map<std::string, HttpSession> sessions_;
+    // 老式 SSE: GET 流按 endpoint sessionId 注册, POST /message?sessionId=xxx
+    // 的响应同时推送到该流 (原版 shell-mcp 广播机制)
+    std::unordered_map<std::string, std::weak_ptr<SseStream>> sse_by_query_session_;
 
     // ---------- 公共前置检查 ----------
     bool check_origin(const httplib::Request& req, httplib::Response& res) {
@@ -352,7 +355,7 @@ private:
             return;
         }
 
-        // 单 JSON 响应
+        // 单 JSON 响应 + 双通道推送 (老式 SSE: 响应同时发到 GET 流)
         auto resp = server_.handle_request(req_json);
         if (method == "initialize" && resp.has_value() && !resp->contains("error")) {
             std::string sid = random_session_id();
@@ -362,6 +365,31 @@ private:
             }
             res.set_header("Mcp-Session-Id", sid);
             LOG_INFO("session created: {} ({})", sid, req_json["id"].dump());
+        }
+        // 推送响应到 endpoint sessionId 关联的 GET 流 (对齐原版广播机制)
+        if (resp.has_value()) {
+            std::string qsid = req.get_header_value("Mcp-Session-Id");
+            if (qsid.empty()) {
+                // 从 query 取 sessionId (/message?sessionId=xxx)
+                auto qpos = req.target.find("sessionId=");
+                if (qpos != std::string::npos) {
+                    qsid = req.target.substr(qpos + 10);
+                    auto amp = qsid.find('&');
+                    if (amp != std::string::npos) qsid = qsid.substr(0, amp);
+                }
+            }
+            if (!qsid.empty()) {
+                std::shared_ptr<SseStream> stream;
+                {
+                    std::lock_guard lock(sessions_mutex_);
+                    auto it = sse_by_query_session_.find(qsid);
+                    if (it != sse_by_query_session_.end()) stream = it->second.lock();
+                }
+                if (stream && !stream->closed()) {
+                    stream->push(resp->dump());
+                    LOG_DEBUG("response pushed to sse stream for query session {}", qsid);
+                }
+            }
         }
         res.status = 200;
         res.set_content(resp ? resp->dump() : "{}", "application/json");
@@ -435,7 +463,13 @@ private:
         // server_info/connected 等消息可能让客户端报错 (未知 id 响应/非 JSON-RPC)
         if (sid.empty()) {
             auto stream = std::make_shared<SseStream>();
-            stream->push_endpoint("/message?sessionId=" + random_session_id());
+            std::string qsid = random_session_id();
+            stream->push_endpoint("/message?sessionId=" + qsid);
+            {
+                std::lock_guard lock(sessions_mutex_);
+                sse_by_query_session_[qsid] = stream;
+            }
+            LOG_INFO("sse stream registered for query session {}", qsid);
             res.set_header("Cache-Control", "no-cache, no-store, must-revalidate");
             res.set_header("Pragma", "no-cache");
             res.set_header("X-Accel-Buffering", "no");

@@ -189,3 +189,30 @@
 [INFO 100701557] REQ POST /message session= accept=application/json, text/event-stream
 [INFO 100701557] initialize from es-sim 1 (protocolVersion=2025-11-25)
 [INFO 100701557] session created: 1c0bb6380cf505254fddabb465f2f0c4 (1)
+[INFO 100998065] REQ GET /mcp session= accept=application/json,text/event-stream
+[INFO 100998073] REQ POST /message session= accept=application/json
+[INFO 100998073] initialize from ShellMcpCpp 1.0 (protocolVersion=2025-11-25)
+[INFO 100998073] session created: ca7b294a9074b9c0ca8414a69e72120d ("86b12267d9be493f9cd2f3e93d0566a9")
+[INFO 101021347] REQ GET /sse session= accept=application/json,text/event-stream
+[INFO 101021353] REQ POST /message session= accept=application/json
+[INFO 101021353] initialize from ShellMcpCpp 1.0 (protocolVersion=2025-11-25)
+[INFO 101021353] session created: 7e2934e93fa4e4c6b88bb2d020c3301a ("646f6d6ab75f4fffae70fb45a17b7745")
+[INFO 102088970] REQ GET /sse session= accept=text/event-stream
+[INFO 102088987] REQ POST /message session= accept=*/*
+[INFO 102088987] initialize from full-sim 1 (protocolVersion=2025-11-25)
+[INFO 102088987] session created: 4d575a13919895f867a1d5d99aa288c9 (1)
+[INFO 102089004] REQ POST /message session= accept=*/*
+[INFO 102089009] REQ POST /message session= accept=*/*
+[INFO 102089013] REQ POST /message session= accept=*/*
+[INFO 102089013] execute_command: timeout=30000ms cmd=echo full-flow-ok
+[INFO 102248128] REQ GET /sse session= accept=application/json,text/event-stream
+[INFO 102248150] REQ POST /message session= accept=application/json
+[INFO 102248150] initialize from ShellMcpCpp 1.0 (protocolVersion=2025-11-25)
+[INFO 102248150] session created: 6496dddc5375903507a44473f43a5b0c ("b25534b330f74909bffac598c9910997")
+[INFO 102491938] shell-mcp-server (C++) starting, mode=http protocol=2025-06-18
+[INFO 102491939] http transport: listening on http://127.0.0.1:8001/mcp
+[INFO 102493177] REQ GET /sse session= accept=text/event-stream
+[INFO 102493177] sse stream registered for query session df353c6dc677f3cdcab5629cf8041293
+[INFO 102493198] REQ POST /message session= accept=*/*
+[INFO 102493198] initialize from dual-sim 1 (protocolVersion=2025-11-25)
+[INFO 102493198] session created: 3901db32e3fb2d7e7113ba51fcbd6599 (1)
