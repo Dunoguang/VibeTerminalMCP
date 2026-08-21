@@ -1,4 +1,5 @@
 #pragma once
+#include "terminal.h"
 #include <nlohmann/json.hpp>
 #include <optional>
 #include <string>
@@ -24,6 +25,7 @@ public:
 
 private:
     json tools_;  // tools/list 返回的 tools 数组
+    TerminalManager terminal_manager_;
 
     // 各方法处理器
     json handle_initialize(const json& params);
@@ -34,6 +36,15 @@ private:
 
     // 工具实现
     json tool_execute_command(const json& args, ProgressCb progress);
+    json tool_terminal_new(const json& args);
+    json tool_terminal_add_cmd(const json& args);
+    json tool_terminal_line(const json& args);
+    json tool_terminal_last(const json& args);
+    json tool_terminal_wait(const json& args);
+    json tool_terminal_timeout(const json& args);
+    json tool_terminal_kill(const json& args);
+    json tool_terminal_list(const json& args);
+    json tool_terminal_resize(const json& args);
     json tool_get_tools(const json& args, ProgressCb progress);
 
     // JSON-RPC 错误构造

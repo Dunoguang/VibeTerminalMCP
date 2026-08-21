@@ -216,3 +216,187 @@
 [INFO 102493198] REQ POST /message session= accept=*/*
 [INFO 102493198] initialize from dual-sim 1 (protocolVersion=2025-11-25)
 [INFO 102493198] session created: 3901db32e3fb2d7e7113ba51fcbd6599 (1)
+[INFO 102544923] REQ POST /sse session= accept=application/json, text/event-stream,application/json
+[INFO 102544924] initialize from ShellMcpCpp 1.0 (protocolVersion=2025-11-25)
+[INFO 102544924] session created: ad2428c478df2fb88f5fa4e0141741c6 ("607666517be14a5e95d56b5e41e6bf01")
+[INFO 102544927] REQ POST /sse session=ad2428c478df2fb88f5fa4e0141741c6 accept=application/json, text/event-stream,application/json
+[INFO 102544930] REQ POST /sse session=ad2428c478df2fb88f5fa4e0141741c6 accept=application/json, text/event-stream,application/json
+[INFO 102545538] REQ POST /sse session=ad2428c478df2fb88f5fa4e0141741c6 accept=application/json, text/event-stream,application/json
+[INFO 102547101] REQ GET /sse session= accept=application/json,text/event-stream
+[INFO 102547101] sse stream registered for query session e8c0564b5bc816771df0ef7533f88aae
+[INFO 102547109] REQ POST /message session= accept=application/json
+[INFO 102547109] initialize from ShellMcpCpp 1.0 (protocolVersion=2025-11-25)
+[INFO 102547109] session created: 88025028e7bc92e882b307d8373153e8 ("d897894edec24f91b7422a16b8a3c924")
+[INFO 102547113] REQ POST /message session= accept=application/json
+[INFO 102547115] REQ POST /message session= accept=application/json
+[INFO 102548191] REQ POST /message session= accept=application/json
+[INFO 102581875] REQ POST /message session= accept=application/json
+[INFO 102581875] execute_command: timeout=30000ms cmd=echo "=== shell-mcp-cpp 通过宿主客户端实测 ==="; echo "hostname: $(hostname)"; echo "kernel: $(uname -r)"; echo "cwd: $(pwd)"; echo "server PID: $(cat /root/github/shell-mcp-cpp/server.pid)";
+[INFO 102581967] REQ POST /message session= accept=application/json
+[INFO 102581967] execute_command: timeout=2000ms cmd=echo "超时击杀测试: 先输出, 然后 sleep 10 应被杀"; sleep 10; echo "这行不应出现"
+[INFO 102584009] timeout 2000ms, killpg(12835) for cmd: echo "超时击杀测试: 先输出, 然后 sleep 10 应被杀"; sleep 10; echo "这行不应出现"
+[INFO 102584019] REQ POST /message session= accept=application/json
+[INFO 102584019] execute_command: timeout=30000ms cmd=echo "env=$MYTEST cwd=$(pwd)"; ls /root/github/shell-mcp-cpp/ | head -8
+[INFO 102622050] REQ POST /message session= accept=application/json
+[INFO 102622050] execute_command: timeout=0ms cmd=echo "=== 60s 递增输出开始 $(date +%T) ==="; for i in $(seq 1 60); do echo "tick-$i $(date +%T.%N)"; sleep 1; done; echo "=== 完成 $(date +%T) ==="
+[INFO 102632473] REQ POST /message session= accept=application/json
+[INFO 105265953] shell-mcp-server (C++) starting, mode=http protocol=2025-06-18
+[INFO 105265954] http transport: listening on http://127.0.0.1:8001/mcp
+[INFO 105266458] REQ GET /sse session= accept=application/json,text/event-stream
+[INFO 105266458] sse stream registered for query session 46fbb861907b4bd5cd099331e5ab3477
+[INFO 105266477] REQ POST /message session= accept=application/json
+[INFO 105266477] initialize from ShellMcpCpp 1.0 (protocolVersion=2025-11-25)
+[INFO 105266477] session created: a6a4d6c860a0edb21abca262fe161494 ("c2ed6f9cfc094311b9d347d2973fb08f")
+[INFO 105266480] REQ POST /message session= accept=application/json
+[INFO 105266485] REQ POST /message session= accept=application/json
+[INFO 105267007] REQ POST /mcp session= accept=*/*
+[INFO 105267008] terminal 3aa7f9a1fc8cf762 created (pid=13269, 24x80)
+[INFO 105267008] terminal_new: 3aa7f9a1fc8cf762 (24x80)
+[INFO 105267089] REQ POST /mcp session= accept=*/*
+[INFO 105267145] REQ POST /mcp session= accept=*/*
+[INFO 105278623] REQ POST /mcp session= accept=*/*
+[INFO 105278682] REQ POST /mcp session= accept=*/*
+[INFO 105278747] REQ POST /mcp session= accept=*/*
+[INFO 105279767] REQ POST /mcp session= accept=*/*
+[INFO 105279801] REQ POST /mcp session= accept=*/*
+[INFO 105284848] REQ POST /mcp session= accept=*/*
+[INFO 105284915] REQ POST /mcp session= accept=*/*
+[INFO 105285068] terminal 3aa7f9a1fc8cf762 closed
+[INFO 105285068] terminal 3aa7f9a1fc8cf762 closed
+[INFO 105285134] REQ POST /mcp session= accept=*/*
+[INFO 105318141] shell-mcp-server (C++) starting, mode=http protocol=2025-06-18
+[INFO 105318142] http transport: listening on http://127.0.0.1:8001/mcp
+[INFO 105318637] REQ GET /sse session= accept=application/json,text/event-stream
+[INFO 105318637] sse stream registered for query session d59b87fe58e773907e68f0e6aaf0cd74
+[INFO 105318652] REQ POST /message session= accept=application/json
+[INFO 105318652] initialize from ShellMcpCpp 1.0 (protocolVersion=2025-11-25)
+[INFO 105318652] session created: 7cc1f26f1246a80bacf3cc67ac8bb7a0 ("125cccc2a7d5404aaebc615c9881d623")
+[INFO 105318665] REQ POST /message session= accept=application/json
+[INFO 105318676] REQ POST /message session= accept=application/json
+[INFO 105319211] REQ POST /mcp session= accept=*/*
+[INFO 105319212] terminal f085298662f9fc82 created (pid=13339, 24x80)
+[INFO 105319212] terminal_new: f085298662f9fc82 (24x80)
+[INFO 105319234] REQ POST /mcp session= accept=*/*
+[INFO 105320261] REQ POST /mcp session= accept=*/*
+[INFO 105320273] REQ POST /mcp session= accept=*/*
+[INFO 105325336] REQ POST /mcp session= accept=*/*
+[INFO 105325487] terminal f085298662f9fc82 closed
+[INFO 105325487] terminal f085298662f9fc82 closed
+[INFO 105356664] shell-mcp-server (C++) starting, mode=http protocol=2025-06-18
+[INFO 105356664] http transport: listening on http://127.0.0.1:8001/mcp
+[INFO 105357165] REQ GET /sse session= accept=application/json,text/event-stream
+[INFO 105357165] sse stream registered for query session c2c7e5babfcef753513c352a351f0085
+[INFO 105357188] REQ POST /message session= accept=application/json
+[INFO 105357188] initialize from ShellMcpCpp 1.0 (protocolVersion=2025-11-25)
+[INFO 105357188] session created: 93f767d90c7a54e4beecda34e9ef3fac ("7d742806d25f4cb595b9c7379b15c2d1")
+[INFO 105357193] REQ POST /message session= accept=application/json
+[INFO 105357197] REQ POST /message session= accept=application/json
+[INFO 105357697] REQ POST /mcp session= accept=*/*
+[INFO 105357697] terminal 017c05ec854b1ab6 created (pid=13393, 24x80)
+[INFO 105357698] terminal_new: 017c05ec854b1ab6 (24x80)
+[INFO 105357739] REQ POST /mcp session= accept=*/*
+[INFO 105358764] REQ POST /mcp session= accept=*/*
+[INFO 105358790] REQ POST /mcp session= accept=*/*
+[INFO 105364245] REQ POST /mcp session= accept=*/*
+[INFO 105364396] terminal 017c05ec854b1ab6 closed
+[INFO 105364396] terminal 017c05ec854b1ab6 closed
+[INFO 105395033] shell-mcp-server (C++) starting, mode=http protocol=2025-06-18
+[INFO 105395034] http transport: listening on http://127.0.0.1:8001/mcp
+[INFO 105395512] REQ GET /sse session= accept=application/json,text/event-stream
+[INFO 105395512] sse stream registered for query session 4b1f22d5e00405a385c8307e44466de5
+[INFO 105395529] REQ POST /message session= accept=application/json
+[INFO 105395529] initialize from ShellMcpCpp 1.0 (protocolVersion=2025-11-25)
+[INFO 105395529] session created: cf396ccbd2ff14555b9d4b38db761108 ("b5defdea24134edc9b033fd0571e4426")
+[INFO 105395533] REQ POST /message session= accept=application/json
+[INFO 105395535] REQ POST /message session= accept=application/json
+[INFO 105396068] REQ POST /mcp session= accept=*/*
+[INFO 105396071] terminal 41bdaadf29301502 created (pid=13447, 24x80)
+[INFO 105396071] terminal_new: 41bdaadf29301502 (24x80)
+[INFO 105396130] REQ POST /mcp session= accept=*/*
+[INFO 105397176] REQ POST /mcp session= accept=*/*
+[INFO 105397221] REQ POST /mcp session= accept=*/*
+[WARN 105402638] HTTP 500 for POST /mcp
+[INFO 105412394] REQ POST /mcp session= accept=*/*
+[INFO 105412395] terminal 25577c3c8ca6c324 created (pid=13461, 24x80)
+[INFO 105412395] terminal_new: 25577c3c8ca6c324 (24x80)
+[INFO 105412441] REQ POST /mcp session= accept=*/*
+[INFO 105412466] REQ POST /mcp session= accept=*/*
+[WARN 105417883] HTTP 500 for POST /mcp
+[INFO 105441850] REQ POST /mcp session= accept=*/*
+[WARN 105444868] HTTP 500 for POST /mcp
+[INFO 105544565] shell-mcp-server (C++) starting, mode=http protocol=2025-06-18
+[INFO 105544566] http transport: listening on http://127.0.0.1:8001/mcp
+[INFO 105545107] REQ GET /sse session= accept=application/json,text/event-stream
+[INFO 105545107] sse stream registered for query session b6ebb5934f2689c01f46c6ceb43c4362
+[INFO 105545131] REQ POST /message session= accept=application/json
+[INFO 105545132] initialize from ShellMcpCpp 1.0 (protocolVersion=2025-11-25)
+[INFO 105545132] session created: 764dba9a25eac03e588c337c72d96280 ("7312b82c15fb4544a83c29deae971ba1")
+[INFO 105545141] REQ POST /message session= accept=application/json
+[INFO 105545146] REQ POST /message session= accept=application/json
+[INFO 105545625] REQ POST /mcp session= accept=*/*
+[INFO 105545626] terminal c5c6c04cb2ab9725 created (pid=13552, 24x80)
+[INFO 105545626] terminal_new: c5c6c04cb2ab9725 (24x80)
+[INFO 105545731] REQ POST /mcp session= accept=*/*
+[INFO 105546776] REQ POST /mcp session= accept=*/*
+[INFO 105546799] REQ POST /mcp session= accept=*/*
+[INFO 105564163] REQ POST /mcp session= accept=*/*
+[INFO 105564164] terminal 926c5b233e05687f created (pid=13564, 24x80)
+[INFO 105564164] terminal_new: 926c5b233e05687f (24x80)
+[INFO 105564208] REQ POST /mcp session= accept=*/*
+[INFO 105565228] REQ POST /mcp session= accept=*/*
+[INFO 105565258] REQ POST /mcp session= accept=*/*
+[INFO 105617931] shell-mcp-server (C++) starting, mode=http protocol=2025-06-18
+[INFO 105617931] http transport: listening on http://127.0.0.1:8001/mcp
+[INFO 105618449] REQ GET /sse session= accept=application/json,text/event-stream
+[INFO 105618449] sse stream registered for query session e197adb8e4424c121526c6cd6da60baf
+[INFO 105618462] REQ POST /message session= accept=application/json
+[INFO 105618463] initialize from ShellMcpCpp 1.0 (protocolVersion=2025-11-25)
+[INFO 105618463] session created: ce72e5f2927568f201ac0f1d1fbc5b8e ("8c2726101003436d8f3b6ae28e056a88")
+[INFO 105618470] REQ POST /message session= accept=application/json
+[INFO 105618476] REQ POST /message session= accept=application/json
+[INFO 105618978] REQ POST /mcp session= accept=*/*
+[INFO 105618979] terminal 6775a861c9fbb2ce created (pid=13617, 24x80)
+[INFO 105618979] terminal_new: 6775a861c9fbb2ce (24x80)
+[INFO 105619088] REQ POST /mcp session= accept=*/*
+[INFO 105620126] REQ POST /mcp session= accept=*/*
+[INFO 105620156] REQ POST /mcp session= accept=*/*
+[INFO 105673678] REQ POST /message session= accept=application/json
+[INFO 105673679] execute_command: timeout=30000ms cmd=kill -INT -13620 2>&1; sleep 0.5; ps -p 13620 -o pid,stat,cmd 2>/dev/null || echo "sleep 13620 已被 SIGINT 终止"
+[INFO 105712521] shell-mcp-server (C++) starting, mode=http protocol=2025-06-18
+[INFO 105712522] http transport: listening on http://127.0.0.1:8001/mcp
+[INFO 105713024] REQ GET /sse session= accept=application/json,text/event-stream
+[INFO 105713024] sse stream registered for query session 70c1a849362b0e32ef58e5d89a77b748
+[INFO 105713043] REQ POST /message session= accept=application/json
+[INFO 105713044] initialize from ShellMcpCpp 1.0 (protocolVersion=2025-11-25)
+[INFO 105713044] session created: 91570386e9f4a11ade4aad901c9d02ec ("19b7e3e428ff4318b0b795d915e0d351")
+[INFO 105713074] REQ POST /message session= accept=application/json
+[INFO 105713079] REQ POST /message session= accept=application/json
+[INFO 105713569] REQ POST /mcp session= accept=*/*
+[INFO 105713570] terminal c07ed7e038f87297 created (pid=13690, 24x80)
+[INFO 105713570] terminal_new: c07ed7e038f87297 (24x80)
+[INFO 105713632] REQ POST /mcp session= accept=*/*
+[INFO 105714664] REQ POST /mcp session= accept=*/*
+[INFO 105714697] REQ POST /mcp session= accept=*/*
+[INFO 105720167] REQ POST /mcp session= accept=*/*
+[INFO 105720318] terminal c07ed7e038f87297 closed
+[INFO 105720318] terminal c07ed7e038f87297 closed
+[INFO 105726146] REQ POST /message session= accept=application/json
+[INFO 105726146] execute_command: timeout=30000ms cmd=ps aux | grep "sleep 30" | grep -v grep; echo "---bash---"; ps aux | grep "bash --noprofile" | grep -v grep
+[INFO 105751452] shell-mcp-server (C++) starting, mode=http protocol=2025-06-18
+[INFO 105751452] http transport: listening on http://127.0.0.1:8001/mcp
+[INFO 105751961] REQ GET /sse session= accept=application/json,text/event-stream
+[INFO 105751962] sse stream registered for query session 0b7931f45584944f0b31b45d277c7948
+[INFO 105751992] REQ POST /message session= accept=application/json
+[INFO 105751994] initialize from ShellMcpCpp 1.0 (protocolVersion=2025-11-25)
+[INFO 105751994] session created: ce7d29a3957ff5e6a394d1fbbe2604da ("b2c527f62ae140cabe76ea5b375dc033")
+[INFO 105752005] REQ POST /message session= accept=application/json
+[INFO 105752021] REQ POST /message session= accept=application/json
+[INFO 105752500] REQ POST /mcp session= accept=*/*
+[INFO 105752501] terminal 92dc7ab7edea4f60 created (pid=13751, 24x80)
+[INFO 105752501] terminal_new: 92dc7ab7edea4f60 (24x80)
+[INFO 105752565] REQ POST /mcp session= accept=*/*
+[INFO 105752582] REQ POST /mcp session= accept=*/*
+[INFO 105754462] REQ POST /mcp session= accept=*/*
+[INFO 105754612] terminal 92dc7ab7edea4f60 closed
+[INFO 105754612] terminal 92dc7ab7edea4f60 closed
+[INFO 105754639] REQ POST /mcp session= accept=*/*

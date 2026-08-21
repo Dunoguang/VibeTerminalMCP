@@ -1,8 +1,11 @@
 #include "server.h"
 #include "process_runner.h"
+#include "terminal.h"
 #include "util.h"
 
 #include <optional>
+#include <thread>
+#include <chrono>
 #include <string>
 
 namespace mcp {
@@ -33,6 +36,147 @@ json tool_schema_execute_command() {
     };
 }
 
+json tool_schema_terminal_new() {
+    return {
+        {"name", "terminal_new"},
+        {"title", "New Terminal"},
+        {"description", "创建持久终端会话 (pty + bash 交互)。返回 session_id。可指定尺寸/工作目录/环境变量。"},
+        {"inputSchema", {
+            {"type", "object"},
+            {"properties", {
+                {"rows", {{"type", "integer"}, {"default", 24}, {"description", "pty 行数"}}},
+                {"cols", {{"type", "integer"}, {"default", 80}, {"description", "pty 列数"}}},
+                {"cwd", {{"type", "string"}, {"description", "工作目录 (默认继承)"}}},
+                {"env", {{"type", "object"}, {"description", "环境变量覆盖 (默认 TERM=xterm-256color)"}}},
+            }},
+            {"required", json::array()},
+        }},
+    };
+}
+
+json tool_schema_terminal_add_cmd() {
+    return {
+        {"name", "terminal_add_cmd"},
+        {"title", "Terminal Add Command"},
+        {"description", "向终端会话输入字符串 (支持控制字符, 不自动回车; auto_enter=true 时追加 \n)"},
+        {"inputSchema", {
+            {"type", "object"},
+            {"properties", {
+                {"session_id", {{"type", "string"}, {"description", "终端会话 ID"}}},
+                {"input", {{"type", "string"}, {"description", "要输入的字符串 (支持 \u001b[...] 等控制字符)"}}},
+                {"auto_enter", {{"type", "boolean"}, {"default", false}, {"description", "自动追加回车"}}},
+            }},
+            {"required", {"session_id", "input"}},
+        }},
+    };
+}
+
+json tool_schema_terminal_line() {
+    return {
+        {"name", "terminal_line"},
+        {"title", "Terminal Lines"},
+        {"description", "获取终端输出第 a-b 行内容 (1-based, 最多 4KB)"},
+        {"inputSchema", {
+            {"type", "object"},
+            {"properties", {
+                {"session_id", {{"type", "string"}, {"description", "终端会话 ID"}}},
+                {"start_line", {{"type", "integer"}, {"default", 1}, {"description", "起始行 (1-based)"}}},
+                {"end_line", {{"type", "integer"}, {"default", -1}, {"description", "结束行 (-1=到最后)"}}},
+            }},
+            {"required", {"session_id"}},
+        }},
+    };
+}
+
+json tool_schema_terminal_last() {
+    return {
+        {"name", "terminal_last"},
+        {"title", "Terminal Last Output"},
+        {"description", "获取终端自上次查询以来的新输出 (最多 4KB)"},
+        {"inputSchema", {
+            {"type", "object"},
+            {"properties", {
+                {"session_id", {{"type", "string"}, {"description", "终端会话 ID"}}},
+            }},
+            {"required", {"session_id"}},
+        }},
+    };
+}
+
+json tool_schema_terminal_wait() {
+    return {
+        {"name", "terminal_wait"},
+        {"title", "Terminal Wait"},
+        {"description", "等待终端命令执行完 (marker 模式: 发 echo 标记等退出码; prompt 模式: 检测提示符)。最多 115s"},
+        {"inputSchema", {
+            {"type", "object"},
+            {"properties", {
+                {"session_id", {{"type", "string"}, {"description", "终端会话 ID"}}},
+                {"timeout_ms", {{"type", "integer"}, {"default", 115000}, {"description", "最大等待 (最多 115000)"}}},
+                {"mode", {{"type", "string"}, {"enum", {"marker", "prompt"}}, {"default", "marker"}, {"description", "完成检测模式"}}},
+            }},
+            {"required", {"session_id"}},
+        }},
+    };
+}
+
+json tool_schema_terminal_timeout() {
+    return {
+        {"name", "terminal_timeout"},
+        {"title", "Terminal Timeout"},
+        {"description", "等待终端 n 秒后返回当前输出 (不判断完成状态, 最多 115s)"},
+        {"inputSchema", {
+            {"type", "object"},
+            {"properties", {
+                {"session_id", {{"type", "string"}, {"description", "终端会话 ID"}}},
+                {"wait_ms", {{"type", "integer"}, {"default", 5000}, {"description", "等待毫秒 (最多 115000)"}}},
+            }},
+            {"required", {"session_id"}},
+        }},
+    };
+}
+
+json tool_schema_terminal_kill() {
+    return {
+        {"name", "terminal_kill"},
+        {"title", "Kill Terminal"},
+        {"description", "关闭终端会话"},
+        {"inputSchema", {
+            {"type", "object"},
+            {"properties", {
+                {"session_id", {{"type", "string"}, {"description", "终端会话 ID"}}},
+            }},
+            {"required", {"session_id"}},
+        }},
+    };
+}
+
+json tool_schema_terminal_list() {
+    return {
+        {"name", "terminal_list"},
+        {"title", "List Terminals"},
+        {"description", "列出终端会话 (ID/存活时间/最后一行)"},
+        {"inputSchema", {{"type", "object"}, {"properties", json::object()}}},
+    };
+}
+
+json tool_schema_terminal_resize() {
+    return {
+        {"name", "terminal_resize"},
+        {"title", "Resize Terminal"},
+        {"description", "调整终端会话 pty 尺寸"},
+        {"inputSchema", {
+            {"type", "object"},
+            {"properties", {
+                {"session_id", {{"type", "string"}, {"description", "终端会话 ID"}}},
+                {"rows", {{"type", "integer"}, {"description", "行数"}}},
+                {"cols", {{"type", "integer"}, {"description", "列数"}}},
+            }},
+            {"required", {"session_id", "rows", "cols"}},
+        }},
+    };
+}
+
 json tool_schema_get_tools() {
     return {
         {"name", "get_tools"},
@@ -46,6 +190,15 @@ json tool_schema_get_tools() {
 TerminalMCPServer::TerminalMCPServer() {
     tools_ = json::array();
     tools_.push_back(tool_schema_execute_command());
+    tools_.push_back(tool_schema_terminal_new());
+    tools_.push_back(tool_schema_terminal_add_cmd());
+    tools_.push_back(tool_schema_terminal_line());
+    tools_.push_back(tool_schema_terminal_last());
+    tools_.push_back(tool_schema_terminal_wait());
+    tools_.push_back(tool_schema_terminal_timeout());
+    tools_.push_back(tool_schema_terminal_kill());
+    tools_.push_back(tool_schema_terminal_list());
+    tools_.push_back(tool_schema_terminal_resize());
     tools_.push_back(tool_schema_get_tools());
 }
 
@@ -135,6 +288,15 @@ json TerminalMCPServer::handle_call_tool(const json& params, ProgressCb progress
     if (name == "execute_command") {
         return tool_execute_command(args, progress);
     }
+    if (name == "terminal_new") return tool_terminal_new(args);
+    if (name == "terminal_add_cmd") return tool_terminal_add_cmd(args);
+    if (name == "terminal_line") return tool_terminal_line(args);
+    if (name == "terminal_last") return tool_terminal_last(args);
+    if (name == "terminal_wait") return tool_terminal_wait(args);
+    if (name == "terminal_timeout") return tool_terminal_timeout(args);
+    if (name == "terminal_kill") return tool_terminal_kill(args);
+    if (name == "terminal_list") return tool_terminal_list(args);
+    if (name == "terminal_resize") return tool_terminal_resize(args);
     if (name == "get_tools") {
         return tool_get_tools(args, progress);
     }
@@ -213,6 +375,140 @@ json TerminalMCPServer::tool_execute_command(const json& args, ProgressCb progre
     LOG_DEBUG("execute_command done: exit={} dur={}ms out={}B err={}B",
               r.exit_code, r.duration_ms, r.stdout_data.size(), r.stderr_data.size());
     return result;
+}
+
+json TerminalMCPServer::tool_terminal_new(const json& args) {
+    int rows = args.value("rows", 24);
+    int cols = args.value("cols", 80);
+    std::string cwd = args.value("cwd", "");
+    std::vector<std::string> env;
+    if (args.contains("env") && args["env"].is_object()) {
+        for (auto& [k, v] : args["env"].items()) env.push_back(k + "=" + v.get<std::string>());
+    }
+    std::string sid = terminal_manager_.create(rows, cols, cwd, env);
+    if (sid.empty()) {
+        return {{"content", json::array({{{"type", "text"}, {"text", "Failed to create terminal"}}})},
+                {"isError", true}};
+    }
+    LOG_INFO("terminal_new: {} ({}x{})", sid, rows, cols);
+    return {{"content", json::array({{{"type", "text"}, {"text", sid}}})}, {"isError", false}};
+}
+
+json TerminalMCPServer::tool_terminal_add_cmd(const json& args) {
+    auto session = terminal_manager_.get(args.value("session_id", ""));
+    if (!session) {
+        return {{"content", json::array({{{"type", "text"}, {"text", "Session not found"}}})}, {"isError", true}};
+    }
+    std::string input = args.value("input", "");
+    bool auto_enter = args.value("auto_enter", false);
+    if (auto_enter) input += "\n";
+    session->write(input);
+    return {{"content", json::array({{{"type", "text"}, {"text", "ok"}}})}, {"isError", false}};
+}
+
+json TerminalMCPServer::tool_terminal_line(const json& args) {
+    auto session = terminal_manager_.get(args.value("session_id", ""));
+    if (!session) {
+        return {{"content", json::array({{{"type", "text"}, {"text", "Session not found"}}})}, {"isError", true}};
+    }
+    int a = args.value("start_line", 1);
+    int b = args.value("end_line", -1);
+    std::string out;
+    if (b < a) {
+        out = session->read_all();
+    } else {
+        out = session->read_lines(a, b);
+    }
+    if (out.size() > 4096) out = out.substr(out.size() - 4096);
+    return {{"content", json::array({{{"type", "text"}, {"text", out}}})}, {"isError", false}};
+}
+
+json TerminalMCPServer::tool_terminal_last(const json& args) {
+    auto session = terminal_manager_.get(args.value("session_id", ""));
+    if (!session) {
+        return {{"content", json::array({{{"type", "text"}, {"text", "Session not found"}}})}, {"isError", true}};
+    }
+    std::string out = session->read_last();
+    if (out.size() > 4096) out = out.substr(out.size() - 4096);
+    return {{"content", json::array({{{"type", "text"}, {"text", out}}})}, {"isError", false}};
+}
+
+json TerminalMCPServer::tool_terminal_wait(const json& args) {
+    auto session = terminal_manager_.get(args.value("session_id", ""));
+    if (!session) {
+        return {{"content", json::array({{{"type", "text"}, {"text", "Session not found"}}})}, {"isError", true}};
+    }
+    int64_t timeout_ms = args.value("timeout_ms", 115000);
+    std::string mode = args.value("mode", "marker");
+    std::string out;
+    bool ok;
+    int ec = -1;
+    if (mode == "prompt") {
+        ok = session->wait_prompt(timeout_ms, out);
+    } else {
+        ok = session->wait_marker(timeout_ms, out, &ec);
+    }
+    json result = {
+        {"content", json::array({{{"type", "text"}, {"text", out}}})},
+        {"isError", false},
+        {"structuredContent", {
+            {"ready", ok},
+            {"exitCode", ec},
+            {"mode", mode},
+        }},
+    };
+    return result;
+}
+
+json TerminalMCPServer::tool_terminal_timeout(const json& args) {
+    auto session = terminal_manager_.get(args.value("session_id", ""));
+    if (!session) {
+        return {{"content", json::array({{{"type", "text"}, {"text", "Session not found"}}})}, {"isError", true}};
+    }
+    int64_t wait_ms = args.value("wait_ms", 5000);
+    if (wait_ms > 115000) wait_ms = 115000;
+    std::this_thread::sleep_for(std::chrono::milliseconds(wait_ms));
+    std::string out = session->read_last();
+    if (out.size() > 4096) out = out.substr(out.size() - 4096);
+    return {{"content", json::array({{{"type", "text"}, {"text", out}}})}, {"isError", false}};
+}
+
+json TerminalMCPServer::tool_terminal_kill(const json& args) {
+    std::string sid = args.value("session_id", "");
+    terminal_manager_.kill(sid);
+    return {{"content", json::array({{{"type", "text"}, {"text", "closed"}}})}, {"isError", false}};
+}
+
+json TerminalMCPServer::tool_terminal_list(const json& args) {
+    (void)args;
+    auto sessions = terminal_manager_.list();
+    json arr = json::array();
+    for (auto& s : sessions) {
+        std::string all = s->read_all();
+        std::string last_line;
+        auto nl = all.rfind('\n');
+        last_line = (nl == std::string::npos) ? all : all.substr(nl + 1);
+        if (last_line.size() > 200) last_line = last_line.substr(last_line.size() - 200);
+        arr.push_back({
+            {"id", s->id()},
+            {"pid", s->pid()},
+            {"alive", s->alive()},
+            {"idle_ms", now_ms() - s->last_activity_ms()},
+            {"last_line", last_line},
+        });
+    }
+    return {{"content", json::array({{{"type", "text"}, {"text", arr.dump(2)}}})}, {"isError", false}};
+}
+
+json TerminalMCPServer::tool_terminal_resize(const json& args) {
+    auto session = terminal_manager_.get(args.value("session_id", ""));
+    if (!session) {
+        return {{"content", json::array({{{"type", "text"}, {"text", "Session not found"}}})}, {"isError", true}};
+    }
+    int rows = args.value("rows", 24);
+    int cols = args.value("cols", 80);
+    session->resize(rows, cols);
+    return {{"content", json::array({{{"type", "text"}, {"text", "ok"}}})}, {"isError", false}};
 }
 
 json TerminalMCPServer::tool_get_tools(const json& args, ProgressCb progress) {

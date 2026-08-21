@@ -221,6 +221,19 @@ public:
             return httplib::Server::HandlerResponse::Unhandled;
         });
 
+        svr.set_exception_handler([](const httplib::Request& req, httplib::Response& res,
+                                     std::exception_ptr ep) {
+            try {
+                if (ep) std::rethrow_exception(ep);
+            } catch (const std::exception& e) {
+                LOG_ERROR("httplib exception on {} {}: {}", req.method, req.path, e.what());
+            } catch (...) {
+                LOG_ERROR("httplib unknown exception on {} {}", req.method, req.path);
+            }
+            res.status = 500;
+            res.set_content("Internal Server Error", "text/plain");
+        });
+
         svr.set_error_handler([](const httplib::Request& req, httplib::Response& res) {
             LOG_WARN("HTTP {} for {} {}", res.status, req.method, req.path);
             if (res.status == 404) res.set_content("Not Found", "text/plain");
