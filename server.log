@@ -93,3 +93,8 @@
 [INFO 99350958] shell-mcp-server (C++) starting, mode=http protocol=2025-06-18
 [INFO 99350958] http transport: listening on http://127.0.0.1:8001/mcp
 [INFO 99352040] REQ GET /mcp session= accept=application/json,text/event-stream
+[INFO 99373877] REQ GET /mcp session= accept=application/json,text/event-stream
+[INFO 99450610] shell-mcp-server (C++) starting, mode=http protocol=2025-06-18
+[INFO 99450610] http transport: listening on http://127.0.0.1:8001/mcp
+[INFO 99451681] REQ GET /sse session= accept=text/event-stream
+[INFO 99453691] REQ POST /messages session= accept=*/*

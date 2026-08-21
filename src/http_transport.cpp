@@ -36,6 +36,11 @@ std::string sse_frame(const std::string& json_data) {
     return "event: message\ndata: " + json_data + "\n\n";
 }
 
+// 老式 HTTP+SSE (2024-11-05): event: endpoint + data: <messages-url>
+std::string sse_endpoint_frame(const std::string& url) {
+    return "event: endpoint\ndata: " + url + "\n\n";
+}
+
 // 客户端 Accept 是否含 text/event-stream
 bool wants_sse(const httplib::Request& req) {
     return req.get_header_value("Accept").find("text/event-stream") != std::string::npos;
@@ -59,6 +64,15 @@ public:
         cv_.notify_all();
     }
 
+    // 推送老式 endpoint 事件 (event: endpoint, 非 JSON-RPC)
+    void push_endpoint(const std::string& url) {
+        {
+            std::lock_guard lock(m_);
+            endpoints_.push_back(url);
+        }
+        cv_.notify_all();
+    }
+
     void close() {
         {
             std::lock_guard lock(m_);
@@ -77,7 +91,21 @@ public:
     bool serve(httplib::DataSink& sink, bool heartbeat) {
         // 初始注释行: 立即 flush 响应头 (httplib 缓冲, 否则客户端收不到 200)
         if (!sink.write(":\n", 2)) return false;
+        // 老式 endpoint 事件优先发送
         for (;;) {
+            std::string ep;
+            {
+                std::lock_guard lock(m_);
+                if (!endpoints_.empty()) {
+                    ep = std::move(endpoints_.front());
+                    endpoints_.pop_front();
+                }
+            }
+            if (!ep.empty()) {
+                std::string f = sse_endpoint_frame(ep);
+                if (!sink.write(f.data(), f.size())) return false;
+                continue;
+            }
             Event evt;
             {
                 std::unique_lock lock(m_);
@@ -111,6 +139,7 @@ private:
     std::mutex m_;
     std::condition_variable cv_;
     std::deque<Event> events_;
+    std::deque<std::string> endpoints_;  // 老式 endpoint 事件 (先发)
     bool closed_ = false;
 };
 
@@ -133,6 +162,11 @@ public:
         svr.Get(kEndpoint, get_handler);
         svr.Post("/", post_handler);
         svr.Get("/", get_handler);
+        // 老式 HTTP+SSE (2024-11-05) 兼容: /messages 收消息, /sse 建流
+        svr.Post("/messages", post_handler);
+        svr.Get("/messages", get_handler);
+        svr.Post("/sse", post_handler);
+        svr.Get("/sse", get_handler);
 
         svr.Options(kEndpoint, [](const httplib::Request&, httplib::Response& res) {
             res.set_header("Access-Control-Allow-Origin", "*");
@@ -367,17 +401,12 @@ private:
         }
         if (!check_origin(req, res)) return;
         std::string sid = req.get_header_value("Mcp-Session-Id");
-        // 无 session: 200 + text/event-stream + 保持流 + 立即发真实事件 + 心跳
-        // (客户端: 校验 Content-Type 必须 SSE; 期望持续连接; 关流会被视为失败重试;
-        //  只发注释行被视为无消息; 真实事件=连接确认信号)
+        // 无 session: 200 + text/event-stream + 保持流 + endpoint 事件 (老式握手) + 心跳
+        // 客户端流程: GET 流 → 收到 event: endpoint + data: /messages → POST /messages 发消息
         if (sid.empty()) {
             auto stream = std::make_shared<SseStream>();
-            json msg = {
-                {"jsonrpc", "2.0"},
-                {"method", "notifications/message"},
-                {"params", {{"level", "info"}, {"data", "SSE stream connected"}}},
-            };
-            stream->push(msg.dump());
+            // 老式 HTTP+SSE: endpoint 事件告知客户端 POST 地址
+            stream->push_endpoint("/messages");
             res.set_header("Cache-Control", "no-cache");
             res.set_header("X-Accel-Buffering", "no");
             res.set_content_provider(
