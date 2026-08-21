@@ -67,3 +67,13 @@
 [INFO 98934488] http transport: listening on http://127.0.0.1:8001/mcp
 [INFO 98935550] REQ GET /mcp session= accept=application/json,text/event-stream
 [INFO 98935550] get sse stream registered for session 
+[INFO 98956209] REQ GET /mcp session= accept=application/json,text/event-stream
+[INFO 98956209] get sse stream registered for session 
+[INFO 99058176] shell-mcp-server (C++) starting, mode=http protocol=2025-06-18
+[INFO 99058176] http transport: listening on http://127.0.0.1:8001/mcp
+[INFO 99059232] REQ GET /mcp session= accept=application/json,text/event-stream
+[INFO 99059269] REQ POST /mcp session= accept=*/*
+[INFO 99059269] initialize from t 1 (protocolVersion=2025-11-25)
+[INFO 99059269] session created: d9a7479e1b4f722d792cadd9edc88bc6 (1)
+[INFO 99059308] REQ GET /mcp session=d9a7479e1b4f722d792cadd9edc88bc6 accept=text/event-stream
+[INFO 99059308] get sse stream registered for session d9a7479e1b4f722d792cadd9edc88bc6
