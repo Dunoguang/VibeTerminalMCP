@@ -77,3 +77,15 @@
 [INFO 99059269] session created: d9a7479e1b4f722d792cadd9edc88bc6 (1)
 [INFO 99059308] REQ GET /mcp session=d9a7479e1b4f722d792cadd9edc88bc6 accept=text/event-stream
 [INFO 99059308] get sse stream registered for session d9a7479e1b4f722d792cadd9edc88bc6
+[INFO 99090040] REQ POST /mcp session= accept=application/json, text/event-stream,application/json
+[INFO 99090040] initialize from ShellMcpCpp 1.0 (protocolVersion=2025-11-25)
+[INFO 99090040] session created: 7eae4ada4a586c58b9ee2e299e26552d ("77872ffde6aa402f858bda7cf41a9649")
+[INFO 99090057] REQ POST /mcp session=7eae4ada4a586c58b9ee2e299e26552d accept=application/json, text/event-stream,application/json
+[INFO 99090068] REQ POST /mcp session=7eae4ada4a586c58b9ee2e299e26552d accept=application/json, text/event-stream,application/json
+[INFO 99090099] REQ GET /mcp session=7eae4ada4a586c58b9ee2e299e26552d accept=application/json,text/event-stream
+[INFO 99090099] get sse stream registered for session 7eae4ada4a586c58b9ee2e299e26552d
+[INFO 99091633] REQ GET /mcp session= accept=application/json,text/event-stream
+[INFO 99092582] REQ GET /mcp session= accept=application/json,text/event-stream
+[INFO 99230795] shell-mcp-server (C++) starting, mode=http protocol=2025-06-18
+[INFO 99230797] http transport: listening on http://127.0.0.1:8001/mcp
+[INFO 99231838] REQ GET /mcp session= accept=application/json,text/event-stream

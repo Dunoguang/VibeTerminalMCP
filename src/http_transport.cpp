@@ -367,14 +367,24 @@ private:
         }
         if (!check_origin(req, res)) return;
         std::string sid = req.get_header_value("Mcp-Session-Id");
-        // 无 session: 快速返回 200 + JSON 立即结束 (客户端探测期望快速响应,
-        // 开流会永久挂起; 404 语义=不存在客户端不接受)
+        // 无 session: 200 + text/event-stream + 立即发一条事件后关流
+        // (客户端校验 Content-Type 必须 SSE; 流必须快速结束否则挂起)
         if (sid.empty()) {
-            res.status = 200;
-            res.set_content(
-                json{{"status", "ok"}, {"transport", "streamable-http"},
-                     {"endpoint", kEndpoint}, {"message", "use POST /mcp for JSON-RPC"}}.dump(),
-                "application/json");
+            auto stream = std::make_shared<SseStream>();
+            json msg = {
+                {"jsonrpc", "2.0"},
+                {"method", "notifications/message"},
+                {"params", {{"level", "info"}, {"data", "SSE stream connected"}}},
+            };
+            stream->push(msg.dump());
+            stream->close();  // 事件发出后流结束
+            res.set_header("Cache-Control", "no-cache");
+            res.set_header("X-Accel-Buffering", "no");
+            res.set_content_provider(
+                "text/event-stream",
+                [stream](size_t, httplib::DataSink& sink) -> bool {
+                    return stream->serve(sink, /*heartbeat=*/false);
+                });
             return;
         }
         if (!check_session(req, res)) return;
