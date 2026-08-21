@@ -400,3 +400,51 @@
 [INFO 105754612] terminal 92dc7ab7edea4f60 closed
 [INFO 105754612] terminal 92dc7ab7edea4f60 closed
 [INFO 105754639] REQ POST /mcp session= accept=*/*
+[INFO 105940777] shell-mcp-server (C++) starting, mode=http protocol=2025-06-18
+[INFO 105940779] http transport: listening on http://127.0.0.1:8001/mcp
+[INFO 105941316] REQ GET /sse session= accept=application/json,text/event-stream
+[INFO 105941316] sse stream registered for query session 9732ba017dbfb34f769738e355ba556a
+[INFO 105941337] REQ POST /message session= accept=application/json
+[INFO 105941337] initialize from ShellMcpCpp 1.0 (protocolVersion=2025-11-25)
+[INFO 105941337] session created: 4991ae1ecd31691a8a372bce42c15cb6 ("d6d197e47f404e7bb5aad4da55669b40")
+[INFO 105941360] REQ POST /message session= accept=application/json
+[INFO 105941371] REQ POST /message session= accept=application/json
+[INFO 105941858] REQ POST /mcp session= accept=*/*
+[INFO 105941859] terminal db485b8edd24126c created (pid=13834, 24x80)
+[INFO 105941859] terminal_new: db485b8edd24126c (24x80)
+[INFO 105941979] REQ POST /mcp session= accept=*/*
+[INFO 105943013] REQ POST /mcp session= accept=*/*
+[INFO 105943013] signal_fg: SIG2 to pgid 13837 (bash pid 13834)
+[INFO 105943103] REQ POST /mcp session= accept=*/*
+[INFO 105968805] REQ POST /message session= accept=application/json
+[INFO 105968805] execute_command: timeout=30000ms cmd=kill -INT -13837 2>&1; sleep 1; ps -p 13837 -o pid,stat,cmd 2>/dev/null && echo "still alive" || echo "killed"
+[INFO 105993976] REQ POST /message session= accept=application/json
+[INFO 105993976] execute_command: timeout=30000ms cmd=SERVER_PID=$(cat /root/github/shell-mcp-cpp/server.pid) && echo "server: $SERVER_PID" && grep -E "SigIgn|SigBlk|SigCgt" /proc/$SERVER_PID/status && echo "--- 计算 SIGINT(2) 是否在 SigIgn ---" && 
+[INFO 106018356] shell-mcp-server (C++) starting, mode=http protocol=2025-06-18
+[INFO 106018356] http transport: listening on http://127.0.0.1:8001/mcp
+[INFO 106018842] REQ GET /sse session= accept=application/json,text/event-stream
+[INFO 106018842] sse stream registered for query session 354c0e32a6c39cf9ee5118c849058c53
+[INFO 106018891] REQ POST /message session= accept=application/json
+[INFO 106018891] initialize from ShellMcpCpp 1.0 (protocolVersion=2025-11-25)
+[INFO 106018891] session created: aae77c00cd69b87c46129c735e9bc5f6 ("82b4b00381304bb5ac79ea5a15858de4")
+[INFO 106018905] REQ POST /message session= accept=application/json
+[INFO 106018913] REQ POST /message session= accept=application/json
+[INFO 106019418] REQ POST /mcp session= accept=*/*
+[INFO 106019419] terminal 409556f8d2f4e680 created (pid=13902, 24x80)
+[INFO 106019419] terminal_new: 409556f8d2f4e680 (24x80)
+[INFO 106019476] REQ POST /mcp session= accept=*/*
+[INFO 106020530] REQ POST /mcp session= accept=*/*
+[INFO 106020530] signal_fg: SIG2 to pgid 13905 (bash pid 13902)
+[INFO 106020610] REQ POST /mcp session= accept=*/*
+[INFO 106033198] REQ POST /mcp session= accept=*/*
+[INFO 106033199] terminal db2c5308cc72d134 created (pid=13918, 24x80)
+[INFO 106033199] terminal_new: db2c5308cc72d134 (24x80)
+[INFO 106033255] REQ POST /mcp session= accept=*/*
+[INFO 106033278] REQ POST /mcp session= accept=*/*
+[INFO 106036738] REQ POST /mcp session= accept=*/*
+[INFO 106036769] REQ POST /mcp session= accept=*/*
+[INFO 106036812] REQ POST /mcp session= accept=*/*
+[INFO 106036882] REQ POST /mcp session= accept=*/*
+[INFO 106036935] REQ POST /mcp session= accept=*/*
+[INFO 106037087] terminal db2c5308cc72d134 closed
+[INFO 106037087] terminal db2c5308cc72d134 closed

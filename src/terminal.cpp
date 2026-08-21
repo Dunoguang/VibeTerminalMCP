@@ -12,6 +12,8 @@
 #include <algorithm>
 #include <cerrno>
 #include <cstring>
+#include <fstream>
+#include <sstream>
 #include <random>
 #include <thread>
 
@@ -99,6 +101,16 @@ bool TerminalSession::start() {
         for (auto& s : env_store) envp.push_back(s.data());
         envp.push_back(nullptr);
 
+        // 重置信号处置: exec 会保留 SIG_IGN (nohup 启动的服务器继承了 SIGINT=IGN),
+        // 不重置则 bash/sleep 全部忽略 SIGINT, Ctrl+C 永远无效
+        signal(SIGINT, SIG_DFL);
+        signal(SIGQUIT, SIG_DFL);
+        signal(SIGTERM, SIG_DFL);
+        signal(SIGTSTP, SIG_DFL);
+        signal(SIGTTOU, SIG_DFL);
+        signal(SIGTTIN, SIG_DFL);
+        signal(SIGHUP, SIG_DFL);
+
         // bash 交互模式 (需要 pty)
         const char* argv[] = {"bash", "--noprofile", "--norc", "-i", nullptr};
         execve("/bin/bash", const_cast<char* const*>(argv), envp.data());
@@ -164,7 +176,21 @@ void TerminalSession::append_output(const char* data, size_t n) {
 
 void TerminalSession::write(const std::string& data) {
     if (!alive_ || master_fd_ < 0) return;
-    ::write(master_fd_, data.data(), data.size());
+    // 控制字符映射: \x03 Ctrl+C → SIGINT, \x1a Ctrl+Z → SIGTSTP, \x1c Ctrl+\ → SIGQUIT
+    // 直接发信号给前台进程组 (tty ldisc 在无控制终端服务器下不可靠)
+    std::string rest;
+    bool has_ctrl = false;
+    for (char c : data) {
+        if (c == '\x03') { signal_fg(SIGINT); has_ctrl = true; }
+        else if (c == '\x1a') { signal_fg(SIGTSTP); has_ctrl = true; }
+        else if (c == '\x1c') { signal_fg(SIGQUIT); has_ctrl = true; }
+        else rest.push_back(c);
+    }
+    if (!rest.empty()) ::write(master_fd_, rest.data(), rest.size());
+    if (has_ctrl) {
+        // 信号后稍等, 让前台命令退出
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    }
     last_activity_ = now_ms();
 }
 
@@ -306,6 +332,32 @@ bool TerminalSession::wait_prompt(int64_t timeout_ms, std::string& out) {
         if (out.size() > 4096) out = out.substr(out.size() - 4096);
     }
     return found;
+}
+
+bool TerminalSession::signal_fg(int sig) {
+    // 从 /proc/<bash_pid>/stat 读前台进程组 tpgid (字段 8, bash 持有控制终端)
+    std::ifstream f("/proc/" + std::to_string(pid_) + "/stat");
+    std::string line;
+    if (!std::getline(f, line)) {
+        LOG_WARN("signal_fg: cannot read /proc/{}/stat", pid_);
+        return false;
+    }
+    auto rp = line.rfind(')');
+    if (rp == std::string::npos) return false;
+    std::istringstream ss(line.substr(rp + 1));
+    char state;
+    int ppid, pgrp, session, tty_nr, tpgid;
+    if (!(ss >> state >> ppid >> pgrp >> session >> tty_nr >> tpgid)) return false;
+    if (tpgid <= 0) {
+        LOG_WARN("signal_fg: no foreground process group (tpgid={})", tpgid);
+        return false;
+    }
+    LOG_INFO("signal_fg: SIG{} to pgid {} (bash pid {})", sig, tpgid, pid_);
+    if (kill(-tpgid, sig) != 0) {
+        LOG_WARN("signal_fg: kill(-{}, {}) failed: {}", tpgid, sig, strerror(errno));
+        return false;
+    }
+    return true;
 }
 
 void TerminalSession::resize(int rows, int cols) {

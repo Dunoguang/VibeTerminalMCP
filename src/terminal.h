@@ -42,6 +42,10 @@ public:
     // 调整 pty 尺寸
     void resize(int rows, int cols);
 
+    // 向会话前台进程组发信号 (从 /proc/<bash_pid>/stat 读 tpgid, 绕开 tty ldisc)
+    // sig: SIGINT/SIGTSTP/SIGQUIT 等; 返回是否成功
+    bool signal_fg(int sig);
+
     void close();
     bool alive() const { return alive_.load(); }
     const std::string& id() const { return id_; }
