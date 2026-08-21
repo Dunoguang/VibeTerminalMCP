@@ -98,3 +98,36 @@
 [INFO 99450610] http transport: listening on http://127.0.0.1:8001/mcp
 [INFO 99451681] REQ GET /sse session= accept=text/event-stream
 [INFO 99453691] REQ POST /messages session= accept=*/*
+[INFO 99488081] REQ GET /mcp session= accept=application/json,text/event-stream
+[INFO 99488110] REQ POST /messages session= accept=application/json
+[INFO 99488110] initialize from ShellMcpCpp 1.0 (protocolVersion=2025-11-25)
+[INFO 99488111] session created: 4202a1619627cd31f70984069074abb8 ("6d7ccf972f3546409ef96a090aa9f08f")
+[INFO 99547018] REQ GET /sse session= accept=application/json,text/event-stream
+[INFO 99547025] REQ POST /messages session= accept=application/json
+[INFO 99547025] initialize from ShellMcpCpp 1.0 (protocolVersion=2025-11-25)
+[INFO 99547025] session created: d006ee7f833b5cdd2861365bad9b1524 ("c71120b8dee44e21a4563efba839ad80")
+[INFO 99607049] REQ GET /sse session= accept=application/json,text/event-stream
+[INFO 99607065] REQ POST /messages session= accept=application/json
+[INFO 99607065] initialize from ShellMcpCpp 1.0 (protocolVersion=2025-11-25)
+[INFO 99607065] session created: 9f7d068275a690ff1d85fba766e4a197 ("dee322e95611446aa8af6d7321a886c3")
+[INFO 99675341] shell-mcp-server (C++) starting, mode=http protocol=2025-06-18
+[INFO 99675342] http transport: listening on http://127.0.0.1:8001/mcp
+[INFO 99676403] REQ GET /sse session= accept=text/event-stream
+[INFO 99725982] shell-mcp-server (C++) starting, mode=http protocol=2025-06-18
+[INFO 99725988] http transport: listening on http://127.0.0.1:8001/mcp
+[INFO 99727018] REQ GET /sse session= accept=text/event-stream
+[INFO 99781920] shell-mcp-server (C++) starting, mode=http protocol=2025-06-18
+[INFO 99781920] http transport: listening on http://127.0.0.1:8001/mcp
+[INFO 99782964] REQ GET /sse session= accept=text/event-stream
+[INFO 99784972] REQ POST /message session= accept=*/*
+[WARN 99784972] HTTP 404 for POST /message
+[INFO 99784991] REQ POST /message session= accept=*/*
+[WARN 99784991] HTTP 404 for POST /message
+[INFO 99860389] shell-mcp-server (C++) starting, mode=http protocol=2025-06-18
+[INFO 99860393] http transport: listening on http://127.0.0.1:8001/mcp
+[INFO 99861482] REQ GET /sse session= accept=text/event-stream
+[INFO 99863493] REQ POST /message session= accept=*/*
+[INFO 99863494] initialize from legacy 1 (protocolVersion=2025-11-25)
+[INFO 99863494] session created: bfdc93e3503792c96012af6cdb857bae (1)
+[INFO 99863597] REQ POST /message session= accept=*/*
+[INFO 99863597] execute_command: timeout=30000ms cmd=echo legacy-ok

@@ -31,9 +31,9 @@ std::string random_session_id() {
     return id;
 }
 
-// SSE 帧: 标准格式 event: message + data: JSON
-std::string sse_frame(const std::string& json_data) {
-    return "event: message\ndata: " + json_data + "\n\n";
+// SSE 帧: 标准格式 event: <type> + data: <payload>
+std::string sse_frame(const std::string& event_type, const std::string& data) {
+    return "event: " + event_type + "\ndata: " + data + "\n\n";
 }
 
 // 老式 HTTP+SSE (2024-11-05): event: endpoint + data: <messages-url>
@@ -51,15 +51,30 @@ bool wants_sse(const httplib::Request& req) {
 class SseStream : public std::enable_shared_from_this<SseStream> {
 public:
     struct Event {
-        std::string data;       // JSON-RPC 消息
-        bool is_response = false;  // 最终响应: 发送后关流
+        std::string event_type = "message";  // SSE event 类型
+        std::string data;                    // data 载荷
+        bool is_response = false;            // 最终响应: 发送后关流
     };
 
-    // 推事件（通知/响应）
+    // 推事件（通知/响应, event: message）→ events_ 队列 (JSON-RPC 消息)
     void push(std::string data, bool is_response = false) {
         {
             std::lock_guard lock(m_);
-            events_.push_back({std::move(data), is_response});
+            events_.push_back({"message", std::move(data), is_response});
+        }
+        cv_.notify_all();
+    }
+
+    // 推自定义事件 (connected/ping 等, 对齐原版 shell-mcp) — 预组帧入队
+    void push_custom(std::string event_type, std::string data, bool is_response = false) {
+        std::string frame = sse_frame(event_type, data);
+        {
+            std::lock_guard lock(m_);
+            if (is_response) {
+                events_.push_back({"message", std::move(data), true});
+            } else {
+                custom_frames_.push_back(std::move(frame));
+            }
         }
         cv_.notify_all();
     }
@@ -91,8 +106,20 @@ public:
     bool serve(httplib::DataSink& sink, bool heartbeat) {
         // 初始注释行: 立即 flush 响应头 (httplib 缓冲, 否则客户端收不到 200)
         if (!sink.write(":\n", 2)) return false;
-        // 老式 endpoint 事件优先发送
+        // 发送顺序对齐原版: connected(custom) → endpoint → server_info(events)
         for (;;) {
+            std::string custom_frame;
+            {
+                std::lock_guard lock(m_);
+                if (!custom_frames_.empty()) {
+                    custom_frame = std::move(custom_frames_.front());
+                    custom_frames_.pop_front();
+                }
+            }
+            if (!custom_frame.empty()) {
+                if (!sink.write(custom_frame.data(), custom_frame.size())) return false;
+                continue;
+            }
             std::string ep;
             {
                 std::lock_guard lock(m_);
@@ -112,8 +139,10 @@ public:
                 if (heartbeat) {
                     if (!cv_.wait_for(lock, std::chrono::seconds(kSseHeartbeatSec),
                                       [&] { return !events_.empty() || closed_; })) {
-                        // 心跳: SSE 注释行（客户端必须忽略）
-                        if (!sink.write(":\n", 2)) return false;
+                        // 心跳: 对齐原版 ping JSON (event: message)
+                        json ping = {{"type", "ping"}, {"timestamp", now_ms() / 1000}};
+                        std::string pf = sse_frame("message", ping.dump());
+                        if (!sink.write(pf.data(), pf.size())) return false;
                         continue;
                     }
                 } else {
@@ -126,7 +155,7 @@ public:
                 evt = std::move(events_.front());
                 events_.pop_front();
             }
-            std::string frame = sse_frame(evt.data);
+            std::string frame = sse_frame(evt.event_type, evt.data);
             if (!sink.write(frame.data(), frame.size())) {
                 LOG_WARN("sse client disconnected");
                 return false;
@@ -139,7 +168,8 @@ private:
     std::mutex m_;
     std::condition_variable cv_;
     std::deque<Event> events_;
-    std::deque<std::string> endpoints_;  // 老式 endpoint 事件 (先发)
+    std::deque<std::string> endpoints_;   // 老式 endpoint 事件 (先发)
+    std::deque<std::string> custom_frames_;  // 自定义帧队列 (connected/ping 等)
     bool closed_ = false;
 };
 
@@ -162,7 +192,9 @@ public:
         svr.Get(kEndpoint, get_handler);
         svr.Post("/", post_handler);
         svr.Get("/", get_handler);
-        // 老式 HTTP+SSE (2024-11-05) 兼容: /messages 收消息, /sse 建流
+        // 老式 HTTP+SSE (2024-11-05) 兼容: /message (原版端点) + /messages + /sse
+        svr.Post("/message", post_handler);
+        svr.Get("/message", get_handler);
         svr.Post("/messages", post_handler);
         svr.Get("/messages", get_handler);
         svr.Post("/sse", post_handler);
@@ -304,10 +336,10 @@ private:
             if (!check_session(req, res)) return;
         }
 
-        // 通知: 202 Accepted 无 body
+        // 通知: 204 No Content (对齐原版 shell-mcp)
         if (is_notification) {
-            LOG_DEBUG("http notification: {} -> 202", method);
-            res.status = 202;
+            LOG_DEBUG("http notification: {} -> 204", method);
+            res.status = 204;
             return;
         }
 
@@ -401,13 +433,28 @@ private:
         }
         if (!check_origin(req, res)) return;
         std::string sid = req.get_header_value("Mcp-Session-Id");
-        // 无 session: 200 + text/event-stream + 保持流 + endpoint 事件 (老式握手) + 心跳
-        // 客户端流程: GET 流 → 收到 event: endpoint + data: /messages → POST /messages 发消息
+        // 无 session: 复刻原版 shell-mcp GET /sse 流程 —
+        // connected 事件 → endpoint(/message?sessionId=uuid) → server_info → 保持流+心跳
         if (sid.empty()) {
             auto stream = std::make_shared<SseStream>();
-            // 老式 HTTP+SSE: endpoint 事件告知客户端 POST 地址
-            stream->push_endpoint("/messages");
-            res.set_header("Cache-Control", "no-cache");
+            // 1. connected 确认事件
+            stream->push_custom("connected",
+                json{{"status", "connected"}, {"timestamp", now_ms() / 1000}}.dump());
+            // 2. endpoint 事件: 告知客户端 POST 地址 (带 sessionId, 对齐原版)
+            stream->push_endpoint("/message?sessionId=" + random_session_id());
+            // 3. server_info JSON-RPC 消息 (id: server_info, 对齐原版)
+            json si = {
+                {"jsonrpc", "2.0"},
+                {"id", "server_info"},
+                {"result", {
+                    {"protocolVersion", "2025-11-25"},
+                    {"capabilities", {{"tools", {{"listChanged", false}}}}},
+                    {"serverInfo", {{"name", "shell-mcp-server"}, {"version", "0.1.0"}}},
+                }},
+            };
+            stream->push(si.dump());
+            res.set_header("Cache-Control", "no-cache, no-store, must-revalidate");
+            res.set_header("Pragma", "no-cache");
             res.set_header("X-Accel-Buffering", "no");
             res.set_content_provider(
                 "text/event-stream",
