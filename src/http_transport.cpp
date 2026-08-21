@@ -334,10 +334,10 @@ private:
             if (!check_session(req, res)) return;
         }
 
-        // 通知: 202 Accepted (SDK 期望; initialized 202 触发 GET 流尝试 → 405 降级 JSON-only)
+        // 通知: 204 No Content (对齐原版 shell-mcp)
         if (is_notification) {
-            LOG_DEBUG("http notification: {} -> 202", method);
-            res.status = 202;
+            LOG_DEBUG("http notification: {} -> 204", method);
+            res.status = 204;
             return;
         }
 
@@ -420,14 +420,50 @@ private:
             });
     }
 
-    // ---------- GET: 一律 405 快速失败 ----------
-    // 已知正常基线 (M1.5): GET=405 宿主客户端工作正常
-    // 官方 Kotlin SDK isNonRetryableSseError: 404/405 → "stream disabled"
-    // → 非重试, 自动降级 JSON-only 模式 (POST 通道不受影响)
+    // ---------- GET /mcp: SSE 长连接流（2025-06-18 兼容; 服务端→客户端推送） ----------
+    // 铁律: 必须 Accept: text/event-stream + 有效 session, 否则快速失败——
+    // 开永不结束的流会让客户端 HTTP 请求永久挂起
     void handle_get(const httplib::Request& req, httplib::Response& res) {
-        (void)req;
-        res.status = 405;
-        res.set_content("SSE stream not supported; use POST " + std::string(kEndpoint), "text/plain");
+        if (!wants_sse(req)) {
+            res.status = 405;
+            res.set_content("SSE stream requires Accept: text/event-stream", "text/plain");
+            return;
+        }
+        if (!check_origin(req, res)) return;
+        std::string sid = req.get_header_value("Mcp-Session-Id");
+        // 无 session: SSE 流只发 endpoint 事件 (老式握手), 其他一律不发
+        // server_info/connected 等消息可能让客户端报错 (未知 id 响应/非 JSON-RPC)
+        if (sid.empty()) {
+            auto stream = std::make_shared<SseStream>();
+            stream->push_endpoint("/message?sessionId=" + random_session_id());
+            res.set_header("Cache-Control", "no-cache, no-store, must-revalidate");
+            res.set_header("Pragma", "no-cache");
+            res.set_header("X-Accel-Buffering", "no");
+            res.set_content_provider(
+                "text/event-stream",
+                [stream](size_t, httplib::DataSink& sink) -> bool {
+                    bool ok = stream->serve(sink, /*heartbeat=*/true);
+                    stream->close();
+                    return ok;
+                });
+            return;
+        }
+        if (!check_session(req, res)) return;
+
+        auto stream = std::make_shared<SseStream>();
+        register_get_stream(sid, stream);
+        LOG_INFO("get sse stream registered for session {}", sid);
+
+        res.set_header("Cache-Control", "no-cache");
+        res.set_header("X-Accel-Buffering", "no");
+        res.set_header("Connection", "keep-alive");
+        res.set_content_provider(
+            "text/event-stream",
+            [stream](size_t, httplib::DataSink& sink) -> bool {
+                bool ok = stream->serve(sink, /*heartbeat=*/true);
+                stream->close();
+                return ok;
+            });
     }
 };
 

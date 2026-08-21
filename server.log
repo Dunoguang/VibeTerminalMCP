@@ -169,3 +169,23 @@
 [INFO 100306858] REQ POST /mcp session=161f5c64cbb2de2806e023b3ed817020 accept=application/json, text/event-stream
 [INFO 100306895] REQ POST /mcp session=161f5c64cbb2de2806e023b3ed817020 accept=*/*
 [INFO 100306895] execute_command: timeout=30000ms cmd=echo baseline-ok
+[INFO 100327105] REQ GET /mcp session= accept=application/json,text/event-stream
+[WARN 100327106] HTTP 405 for GET /mcp
+[INFO 100329462] REQ GET /mcp session= accept=application/json,text/event-stream
+[WARN 100329462] HTTP 405 for GET /mcp
+[INFO 100329975] REQ GET /mcp session= accept=application/json,text/event-stream
+[WARN 100329976] HTTP 405 for GET /mcp
+[INFO 100540303] REQ GET /mcp session= accept=text/event-stream
+[WARN 100540303] HTTP 405 for GET /mcp
+[INFO 100611683] shell-mcp-server (C++) starting, mode=http protocol=2025-06-18
+[INFO 100611684] http transport: listening on http://127.0.0.1:8001/mcp
+[INFO 100612895] REQ GET /mcp session= accept=text/event-stream
+[INFO 100612915] REQ POST /message session= accept=application/json, text/event-stream
+[INFO 100612915] initialize from es-sim 1 (protocolVersion=2025-11-25)
+[INFO 100612916] session created: 66406513ee6ffcbd5f5306ec444d83de (1)
+[INFO 100700342] shell-mcp-server (C++) starting, mode=http protocol=2025-06-18
+[INFO 100700343] http transport: listening on http://127.0.0.1:8001/mcp
+[INFO 100701538] REQ GET /mcp session= accept=text/event-stream
+[INFO 100701557] REQ POST /message session= accept=application/json, text/event-stream
+[INFO 100701557] initialize from es-sim 1 (protocolVersion=2025-11-25)
+[INFO 100701557] session created: 1c0bb6380cf505254fddabb465f2f0c4 (1)
