@@ -188,8 +188,8 @@ void TerminalSession::write(const std::string& data) {
     }
     if (!rest.empty()) ::write(master_fd_, rest.data(), rest.size());
     if (has_ctrl) {
-        // 信号后稍等, 让前台命令退出
-        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        // 信号后稍等, 让 bash 更新 $? (前台命令退出 + 收尸)
+        std::this_thread::sleep_for(std::chrono::milliseconds(300));
     }
     last_activity_ = now_ms();
 }
@@ -263,6 +263,7 @@ bool TerminalSession::wait_marker(int64_t timeout_ms, std::string& out, int* exi
             }
             // 在 buf 中查找 marker_exit + 数字 (从 init_len 之后)
             auto pos = buf.find(marker_exit, init_len);
+
             if (pos != std::string::npos) {
                 // 提取退出码: marker_exit 后的数字
                 std::string after = buf.substr(pos + marker_exit.size());
