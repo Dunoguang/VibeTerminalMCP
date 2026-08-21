@@ -15,3 +15,16 @@
 [INFO 98348014] get sse stream registered for session edc326ce51c59bfbf0b1af5347dafdfb
 [INFO 98351018] execute_command: timeout=30000ms cmd=echo no-sse-fallback
 [INFO 98357784] get sse stream registered for session edc326ce51c59bfbf0b1af5347dafdfb
+[INFO 98417793] initialize from ShellMcpCpp 1.0 (protocolVersion=2025-11-25)
+[INFO 98417793] session created: a6aabb42dd3a3a9a5f399f86013cc1c1 ("5a9d215640d847a2b197adc31f23739d")
+[INFO 98417807] get sse stream registered for session a6aabb42dd3a3a9a5f399f86013cc1c1
+[INFO 98435206] initialize from ShellMcpCpp 1.0 (protocolVersion=2025-11-25)
+[INFO 98435206] session created: 31ce5e34181eb4713a181508b53ba49a ("96b5d1b776d4404aad546840ff93d50b")
+[INFO 98435223] get sse stream registered for session 31ce5e34181eb4713a181508b53ba49a
+[INFO 98523050] shell-mcp-server (C++) starting, mode=http protocol=2025-06-18
+[INFO 98523051] http transport: listening on http://127.0.0.1:8001/mcp
+[INFO 98524180] initialize from compat-test 1 (protocolVersion=2025-06-18)
+[INFO 98524180] session created: 06be1d04b372aa23a9653c91000da0ac (3)
+[WARN 98524212] unknown session id: deadbeef, 404
+[INFO 98524262] get sse stream registered for session 
+[INFO 98526256] execute_command: timeout=30000ms cmd=echo compat-ok

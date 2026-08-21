@@ -120,13 +120,17 @@ public:
     int run() override {
         httplib::Server svr;
 
-        svr.Post(kEndpoint, [this](const httplib::Request& req, httplib::Response& res) {
+        auto post_handler = [this](const httplib::Request& req, httplib::Response& res) {
             handle_post(req, res);
-        });
-
-        svr.Get(kEndpoint, [this](const httplib::Request& req, httplib::Response& res) {
+        };
+        auto get_handler = [this](const httplib::Request& req, httplib::Response& res) {
             handle_get(req, res);
-        });
+        };
+        // 标准端点 /mcp + 根路径兼容（部分客户端只填 host:port）
+        svr.Post(kEndpoint, post_handler);
+        svr.Get(kEndpoint, get_handler);
+        svr.Post("/", post_handler);
+        svr.Get("/", get_handler);
 
         svr.Options(kEndpoint, [](const httplib::Request&, httplib::Response& res) {
             res.set_header("Access-Control-Allow-Origin", "*");
@@ -202,11 +206,14 @@ private:
         return true;
     }
 
-    // 校验会话; 返回 false 时已写 404 响应
+    // 会话校验: 无 session 头 → 宽松放行（对齐官方 SDK require_session_id=false）;
+    // 带了但未知/已终止 → 404（规范: session 终止后 MUST 404, 客户端会重新 initialize）
     bool check_session(const httplib::Request& req, httplib::Response& res) {
         std::string sid = req.get_header_value("Mcp-Session-Id");
+        if (sid.empty()) return true;  // 无 session 不强制
         std::lock_guard lock(sessions_mutex_);
-        if (sid.empty() || !sessions_.count(sid)) {
+        if (!sessions_.count(sid)) {
+            LOG_WARN("unknown session id: {}, 404", sid);
             res.status = 404;
             res.set_content("Session not found", "text/plain");
             return false;
@@ -339,13 +346,8 @@ private:
 
     // ---------- GET /mcp: SSE 长连接流（2025-06-18 兼容; 服务端→客户端推送） ----------
     void handle_get(const httplib::Request& req, httplib::Response& res) {
-        if (!wants_sse(req)) {
-            res.status = 405;
-            res.set_content("SSE stream requires Accept: text/event-stream", "text/plain");
-            return;
-        }
         if (!check_origin(req, res)) return;
-        if (!check_session(req, res)) return;  // GET 流必须有会话
+        if (!check_session(req, res)) return;
 
         std::string sid = req.get_header_value("Mcp-Session-Id");
         auto stream = std::make_shared<SseStream>();
