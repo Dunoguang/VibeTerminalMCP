@@ -1,0 +1,17 @@
+[INFO 98037481] shell-mcp-server (C++) starting, mode=http protocol=2025-06-18
+[INFO 98037481] http transport: listening on http://127.0.0.1:8001/mcp
+[INFO 98054092] initialize from ShellMcpCpp 1.0 (protocolVersion=2025-11-25)
+[INFO 98054092] session created: 2ed2bf986a36784e306c9bb3568f8090 ("13a9617e5d3d4f5eb095a584a9ff39d3")
+[INFO 98100916] execute_command: timeout=30000ms cmd=echo "=== shell-mcp-cpp 实测 ==="; uname -a | head -1; echo "cwd: $(pwd)"; echo "server uptime check"; ps -p $(cat /root/github/shell-mcp-cpp/server.pid) -o pid,etime,cmd --no-headers
+[INFO 98100972] execute_command: timeout=1500ms cmd=echo "超时击杀测试: sleep 10"; sleep 10; echo "这行不该出现"
+[INFO 98102490] timeout 1500ms, killpg(10479) for cmd: echo "超时击杀测试: sleep 10"; sleep 10; echo "这行不该出现"
+[INFO 98105822] execute_command: timeout=30000ms cmd=echo "env test: MYTEST=$MYTEST"; echo "cwd test: $(pwd)"; echo "exit code test"; exit 7
+[INFO 98341343] shell-mcp-server (C++) starting, mode=http protocol=2025-06-18
+[INFO 98341344] http transport: listening on http://127.0.0.1:8001/mcp
+[INFO 98342373] initialize from sse-test 1 (protocolVersion=2025-06-18)
+[INFO 98342373] session created: edc326ce51c59bfbf0b1af5347dafdfb (1)
+[INFO 98342386] sse response stream for tools/call (token=tok-abc)
+[INFO 98342386] execute_command: timeout=30000ms cmd=echo sse-phase-1; sleep 1; echo sse-phase-2
+[INFO 98348014] get sse stream registered for session edc326ce51c59bfbf0b1af5347dafdfb
+[INFO 98351018] execute_command: timeout=30000ms cmd=echo no-sse-fallback
+[INFO 98357784] get sse stream registered for session edc326ce51c59bfbf0b1af5347dafdfb

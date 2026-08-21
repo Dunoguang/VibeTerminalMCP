@@ -4,18 +4,23 @@
 
 #include "httplib.h"
 
+#include <condition_variable>
+#include <deque>
 #include <memory>
 #include <mutex>
 #include <optional>
 #include <random>
 #include <string>
+#include <thread>
 #include <unordered_map>
+#include <vector>
 
 namespace mcp {
 
 namespace {
 constexpr const char* kEndpoint = "/mcp";
 const std::vector<std::string> kSupportedVersions = {"2025-06-18", "2024-11-05"};
+constexpr int kSseHeartbeatSec = 30;  // GET 流心跳间隔（SSE 注释行）
 
 std::string random_session_id() {
     std::random_device rd;
@@ -25,7 +30,87 @@ std::string random_session_id() {
     for (auto& c : id) c = hex[dist(rd)];
     return id;
 }
+
+// SSE 帧: 标准格式 event: message + data: JSON
+std::string sse_frame(const std::string& json_data) {
+    return "event: message\ndata: " + json_data + "\n\n";
+}
+
+// 客户端 Accept 是否含 text/event-stream
+bool wants_sse(const httplib::Request& req) {
+    return req.get_header_value("Accept").find("text/event-stream") != std::string::npos;
+}
 } // namespace
+
+// 单个 SSE 流: 事件队列 + 阻塞 serve（httplib provider 线程）
+class SseStream : public std::enable_shared_from_this<SseStream> {
+public:
+    struct Event {
+        std::string data;       // JSON-RPC 消息
+        bool is_response = false;  // 最终响应: 发送后关流
+    };
+
+    // 推事件（通知/响应）
+    void push(std::string data, bool is_response = false) {
+        {
+            std::lock_guard lock(m_);
+            events_.push_back({std::move(data), is_response});
+        }
+        cv_.notify_all();
+    }
+
+    void close() {
+        {
+            std::lock_guard lock(m_);
+            closed_ = true;
+        }
+        cv_.notify_all();
+    }
+
+    bool closed() {
+        std::lock_guard lock(m_);
+        return closed_;
+    }
+
+    // 在 httplib content provider 线程阻塞服务; 返回 false 结束响应
+    // heartbeat: GET 长连接流启用（30s 注释行保活）
+    bool serve(httplib::DataSink& sink, bool heartbeat) {
+        for (;;) {
+            Event evt;
+            {
+                std::unique_lock lock(m_);
+                if (heartbeat) {
+                    if (!cv_.wait_for(lock, std::chrono::seconds(kSseHeartbeatSec),
+                                      [&] { return !events_.empty() || closed_; })) {
+                        // 心跳: SSE 注释行（客户端必须忽略）
+                        if (!sink.write(":\n", 2)) return false;
+                        continue;
+                    }
+                } else {
+                    cv_.wait(lock, [&] { return !events_.empty() || closed_; });
+                }
+                if (events_.empty()) {
+                    if (closed_) return false;
+                    continue;
+                }
+                evt = std::move(events_.front());
+                events_.pop_front();
+            }
+            std::string frame = sse_frame(evt.data);
+            if (!sink.write(frame.data(), frame.size())) {
+                LOG_WARN("sse client disconnected");
+                return false;
+            }
+            if (evt.is_response) return false;  // 最终响应后关流
+        }
+    }
+
+private:
+    std::mutex m_;
+    std::condition_variable cv_;
+    std::deque<Event> events_;
+    bool closed_ = false;
+};
 
 class HttpTransport : public Transport {
 public:
@@ -35,18 +120,14 @@ public:
     int run() override {
         httplib::Server svr;
 
-        // POST /mcp: 客户端发 JSON-RPC 消息
         svr.Post(kEndpoint, [this](const httplib::Request& req, httplib::Response& res) {
             handle_post(req, res);
         });
 
-        // GET /mcp: SSE 流（M2 进度通知时启用；规范允许 405）
-        svr.Get(kEndpoint, [](const httplib::Request&, httplib::Response& res) {
-            res.status = 405;
-            res.set_content("SSE stream not supported yet", "text/plain");
+        svr.Get(kEndpoint, [this](const httplib::Request& req, httplib::Response& res) {
+            handle_get(req, res);
         });
 
-        // OPTIONS /mcp: CORS 预检
         svr.Options(kEndpoint, [](const httplib::Request&, httplib::Response& res) {
             res.set_header("Access-Control-Allow-Origin", "*");
             res.set_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS, DELETE");
@@ -56,7 +137,6 @@ public:
             res.status = 204;
         });
 
-        // DELETE /mcp: 客户端终止会话（规范允许 405）
         svr.Delete(kEndpoint, [](const httplib::Request&, httplib::Response& res) {
             res.status = 405;
             res.set_content("Session termination not supported", "text/plain");
@@ -81,11 +161,15 @@ private:
     std::string host_;
     int port_;
 
+    struct HttpSession {
+        bool initialized = true;
+        std::vector<std::weak_ptr<SseStream>> get_streams;  // GET SSE 流
+    };
     std::mutex sessions_mutex_;
-    std::unordered_map<std::string, bool> sessions_;  // session_id -> initialized
+    std::unordered_map<std::string, HttpSession> sessions_;
 
-    void handle_post(const httplib::Request& req, httplib::Response& res) {
-        // 安全: DNS rebinding 防护——Origin 存在时校验其 host 与 Host 头一致
+    // ---------- 公共前置检查 ----------
+    bool check_origin(const httplib::Request& req, httplib::Response& res) {
         if (req.has_header("Origin")) {
             std::string origin = req.get_header_value("Origin");
             std::string host = req.get_header_value("Host");
@@ -97,12 +181,14 @@ private:
                     LOG_WARN("origin mismatch: {} vs host {}", origin_host, host);
                     res.status = 403;
                     res.set_content("Origin not allowed", "text/plain");
-                    return;
+                    return false;
                 }
             }
         }
+        return true;
+    }
 
-        // MCP-Protocol-Version 头校验（无头默认 2025-03-26 之前的客户端，宽松接受）
+    bool check_version(const httplib::Request& req, httplib::Response& res) {
         if (req.has_header("MCP-Protocol-Version")) {
             std::string pv = req.get_header_value("MCP-Protocol-Version");
             bool ok = std::find(kSupportedVersions.begin(), kSupportedVersions.end(), pv) != kSupportedVersions.end();
@@ -110,11 +196,40 @@ private:
                 LOG_WARN("unsupported protocol version header: {}", pv);
                 res.status = 400;
                 res.set_content("Unsupported MCP-Protocol-Version", "text/plain");
-                return;
+                return false;
             }
         }
+        return true;
+    }
 
-        // 解析 body
+    // 校验会话; 返回 false 时已写 404 响应
+    bool check_session(const httplib::Request& req, httplib::Response& res) {
+        std::string sid = req.get_header_value("Mcp-Session-Id");
+        std::lock_guard lock(sessions_mutex_);
+        if (sid.empty() || !sessions_.count(sid)) {
+            res.status = 404;
+            res.set_content("Session not found", "text/plain");
+            return false;
+        }
+        return true;
+    }
+
+    // 注册 GET SSE 流到会话（流关闭时自动移除）
+    void register_get_stream(const std::string& sid, const std::shared_ptr<SseStream>& stream) {
+        std::lock_guard lock(sessions_mutex_);
+        auto& s = sessions_[sid];
+        s.get_streams.erase(
+            std::remove_if(s.get_streams.begin(), s.get_streams.end(),
+                           [](const std::weak_ptr<SseStream>& w) { return w.expired(); }),
+            s.get_streams.end());
+        s.get_streams.push_back(stream);
+    }
+
+    // ---------- POST /mcp ----------
+    void handle_post(const httplib::Request& req, httplib::Response& res) {
+        if (!check_origin(req, res)) return;
+        if (!check_version(req, res)) return;
+
         json req_json;
         try {
             req_json = json::parse(req.body);
@@ -133,14 +248,7 @@ private:
 
         // 会话管理: 除 initialize 外必须有有效 Mcp-Session-Id
         if (method != "initialize") {
-            std::string sid = req.get_header_value("Mcp-Session-Id");
-            std::lock_guard lock(sessions_mutex_);
-            if (sid.empty() || !sessions_.count(sid)) {
-                LOG_WARN("no valid session for method {}", method);
-                res.status = 404;  // 客户端收到 404 会重新 initialize
-                res.set_content("Session not found", "text/plain");
-                return;
-            }
+            if (!check_session(req, res)) return;
         }
 
         // 通知: 202 Accepted 无 body
@@ -150,23 +258,110 @@ private:
             return;
         }
 
-        // 请求: 处理并返回单 JSON 响应
-        auto resp = server_.handle_request(req_json);
+        // SSE 响应流: 客户端想要 SSE 且请求带 progressToken（订阅进度）
+        std::string progress_token;
+        if (req_json.contains("params") && req_json["params"].contains("_meta") &&
+            req_json["params"]["_meta"].contains("progressToken")) {
+            progress_token = req_json["params"]["_meta"]["progressToken"].get<std::string>();
+        }
+        if (wants_sse(req) && !progress_token.empty() && method != "initialize") {
+            handle_post_sse(req, res, req_json, method, progress_token);
+            return;
+        }
 
-        // initialize 成功 → 发放会话
+        // 单 JSON 响应
+        auto resp = server_.handle_request(req_json);
         if (method == "initialize" && resp.has_value() && !resp->contains("error")) {
             std::string sid = random_session_id();
             {
                 std::lock_guard lock(sessions_mutex_);
-                sessions_[sid] = true;
+                sessions_[sid] = HttpSession{};
             }
             res.set_header("Mcp-Session-Id", sid);
             LOG_INFO("session created: {} ({})", sid, req_json["id"].dump());
         }
-
-        res.set_header("Content-Type", "application/json");
         res.status = 200;
         res.set_content(resp ? resp->dump() : "{}", "application/json");
+    }
+
+    // POST SSE 响应流: progress 通知(可多个) + 最终响应, 响应后关流
+    void handle_post_sse(const httplib::Request& req, httplib::Response& res,
+                         const json& req_json, const std::string& method,
+                         const std::string& progress_token) {
+        LOG_INFO("sse response stream for {} (token={})", method, progress_token);
+        auto stream = std::make_shared<SseStream>();
+
+        // 执行线程: 跑请求, 进度推流, 最终响应推流后关
+        std::thread([this, req_json, stream, progress_token, method] {
+            try {
+                // progress 回调 → notifications/progress
+                TerminalMCPServer::ProgressCb cb = [stream, progress_token](const json& p) {
+                    json note = {
+                        {"jsonrpc", "2.0"},
+                        {"method", "notifications/progress"},
+                        {"params", {
+                            {"progressToken", progress_token},
+                            {"progress", p.value("progress", 0.0)},
+                            {"total", p.value("total", json(nullptr))},
+                            {"message", p.value("message", "")},
+                        }},
+                    };
+                    // total 为 null 时移除（规范: total 可选）
+                    if (note["params"]["total"].is_null()) note["params"].erase("total");
+                    stream->push(note.dump());
+                };
+                auto resp = server_.handle_request(req_json, cb);
+                if (resp.has_value()) {
+                    stream->push(resp->dump(), true /* is_response: 发完关流 */);
+                } else {
+                    stream->close();
+                }
+            } catch (const std::exception& e) {
+                LOG_ERROR("sse exec thread error: {}", e.what());
+                json err = {{"jsonrpc", "2.0"}, {"id", nullptr},
+                            {"error", {{"code", -32603}, {"message", std::string("Internal error: ") + e.what()}}}};
+                stream->push(err.dump(), true);
+            }
+        }).detach();
+
+        // 会话发放（initialize 不走 SSE 分支, 无需处理）
+        (void)method;
+
+        res.set_header("Cache-Control", "no-cache");
+        res.set_header("X-Accel-Buffering", "no");
+        res.set_header("Connection", "keep-alive");
+        res.set_content_provider(
+            "text/event-stream",
+            [stream](size_t, httplib::DataSink& sink) -> bool {
+                return stream->serve(sink, /*heartbeat=*/false);
+            });
+    }
+
+    // ---------- GET /mcp: SSE 长连接流（2025-06-18 兼容; 服务端→客户端推送） ----------
+    void handle_get(const httplib::Request& req, httplib::Response& res) {
+        if (!wants_sse(req)) {
+            res.status = 405;
+            res.set_content("SSE stream requires Accept: text/event-stream", "text/plain");
+            return;
+        }
+        if (!check_origin(req, res)) return;
+        if (!check_session(req, res)) return;  // GET 流必须有会话
+
+        std::string sid = req.get_header_value("Mcp-Session-Id");
+        auto stream = std::make_shared<SseStream>();
+        register_get_stream(sid, stream);
+        LOG_INFO("get sse stream registered for session {}", sid);
+
+        res.set_header("Cache-Control", "no-cache");
+        res.set_header("X-Accel-Buffering", "no");
+        res.set_header("Connection", "keep-alive");
+        res.set_content_provider(
+            "text/event-stream",
+            [stream](size_t, httplib::DataSink& sink) -> bool {
+                bool ok = stream->serve(sink, /*heartbeat=*/true);
+                stream->close();
+                return ok;
+            });
     }
 };
 

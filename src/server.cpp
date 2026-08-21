@@ -49,7 +49,7 @@ TerminalMCPServer::TerminalMCPServer() {
     tools_.push_back(tool_schema_get_tools());
 }
 
-std::optional<json> TerminalMCPServer::handle_request(const json& req) {
+std::optional<json> TerminalMCPServer::handle_request(const json& req, ProgressCb progress) {
     int64_t t0 = now_ms();
     std::string method = req.value("method", "");
 
@@ -63,7 +63,7 @@ std::optional<json> TerminalMCPServer::handle_request(const json& req) {
         } else if (method == "tools/list") {
             result = handle_list_tools(req.value("params", json::object()));
         } else if (method == "tools/call") {
-            result = handle_call_tool(req.value("params", json::object()));
+            result = handle_call_tool(req.value("params", json::object()), progress);
         } else if (method == "ping") {
             result = handle_ping();
         } else if (method == "server/discover") {  // 2026-07-28 预留
@@ -128,15 +128,15 @@ json TerminalMCPServer::handle_list_tools(const json& params) {
     return {{"tools", tools_}};
 }
 
-json TerminalMCPServer::handle_call_tool(const json& params) {
+json TerminalMCPServer::handle_call_tool(const json& params, ProgressCb progress) {
     std::string name = params.value("name", "");
     json args = params.value("arguments", json::object());
 
     if (name == "execute_command") {
-        return tool_execute_command(args);
+        return tool_execute_command(args, progress);
     }
     if (name == "get_tools") {
-        return tool_get_tools(args);
+        return tool_get_tools(args, progress);
     }
     throw std::runtime_error("Unknown tool: " + name);
 }
@@ -150,7 +150,7 @@ json TerminalMCPServer::handle_discover() {
     return {{"protocolVersions", kSupportedVersions}};
 }
 
-json TerminalMCPServer::tool_execute_command(const json& args) {
+json TerminalMCPServer::tool_execute_command(const json& args, ProgressCb progress) {
     if (!args.contains("command") || !args["command"].is_string()) {
         return {{"content", json::array({{
             {"type", "text"},
@@ -169,7 +169,15 @@ json TerminalMCPServer::tool_execute_command(const json& args) {
     }
 
     LOG_INFO("execute_command: timeout={}ms cmd={}", timeout_ms, command.substr(0, 200));
+
+    // 阶段进度（SSE 流客户端可见; 无 progressToken 时 progress 为空, 跳过）
+    auto emit = [&](double p, const std::string& msg) {
+        if (progress) progress(json{{"progress", p}, {"total", 1.0}, {"message", msg}});
+    };
+    emit(0.0, "starting: " + command.substr(0, 80));
     ProcessResult r = run_command(command, timeout_ms, env, cwd);
+    emit(1.0, r.timed_out ? "timed out, process group killed"
+                          : "completed (exit " + std::to_string(r.exit_code) + ")");
 
     // 结果文本
     std::string text;
@@ -207,8 +215,8 @@ json TerminalMCPServer::tool_execute_command(const json& args) {
     return result;
 }
 
-json TerminalMCPServer::tool_get_tools(const json& args) {
-    (void)args;
+json TerminalMCPServer::tool_get_tools(const json& args, ProgressCb progress) {
+    (void)args; (void)progress;
     json text = tools_.dump(2);
     return {
         {"content", json::array({{
