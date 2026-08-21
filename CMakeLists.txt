@@ -16,7 +16,10 @@ add_executable(shell-mcp-server
   src/server.cpp
   src/process_runner.cpp
   src/util.cpp
+  src/stdio_transport.cpp
+  src/http_transport.cpp
 )
 
-target_link_libraries(shell-mcp-server PRIVATE nlohmann_json::nlohmann_json)
+target_include_directories(shell-mcp-server PRIVATE third_party)
+target_link_libraries(shell-mcp-server PRIVATE nlohmann_json::nlohmann_json pthread)
 target_compile_options(shell-mcp-server PRIVATE -Wall -Wextra)

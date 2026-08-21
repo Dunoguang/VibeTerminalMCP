@@ -101,7 +101,8 @@ ProcessResult run_command(const std::string& command,
         envp.push_back(nullptr);
 
         std::string cmd_copy = command;  // execve argv 需要非 const char*
-        execve("/bin/bash", (char* const[]){"bash", "-c", cmd_copy.data(), nullptr}, envp.data());
+        const char* bash_argv[] = {"bash", "-c", cmd_copy.c_str(), nullptr};
+        execve("/bin/bash", const_cast<char* const*>(bash_argv), envp.data());
         _exit(127);  // exec 失败
     }
 

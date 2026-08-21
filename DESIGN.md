@@ -121,6 +121,9 @@ pending ──▶ running ──▶ done
 - M2 多任务：TaskManager 全套（异步/状态/取消/列表/结果留存）
 - M3 会话：pty 持久 shell 全套
 - M4 打磨：参数校验、日志分级、README、冒烟测试、接入现有客户端验证
+- ✅ 已完成（M1.5）：Streamable HTTP 传输（2025-06-18 规范）——单端点 /mcp，
+  POST 单 JSON 响应 + 202 通知 + Mcp-Session-Id 会话 + MCP-Protocol-Version 头校验
+  + Origin 防 DNS rebinding + OPTIONS CORS；GET SSE 暂 405（M2 进度通知时启用）
 
 ## 12. 风险与对策
 - C++23 特性仅限 g++ 16/clang 22 可用（本项目固定自家容器工具链，无兼容负担）
