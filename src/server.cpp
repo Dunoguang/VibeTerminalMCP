@@ -30,8 +30,9 @@ json tool_schema_execute_command() {
                 {"env", {{"type", "object"}, {"description", "环境变量覆盖（KEY=VALUE）"}}},
                 {"cwd", {{"type", "string"}, {"description", "工作目录（默认继承服务器目录）"}}},
                 {"force_execute", {{"type", "boolean"}, {"description", "预留：强制执行（当前无黑名单过滤）"}}},
+                {"reason", {{"type", "string"}, {"description", "操作理由（必填，用于审计）"}}},
             }},
-            {"required", {"command"}},
+            {"required", {"command", "reason"}},
         }},
     };
 }
@@ -48,8 +49,9 @@ json tool_schema_terminal_new() {
                 {"cols", {{"type", "integer"}, {"default", 80}, {"description", "pty 列数"}}},
                 {"cwd", {{"type", "string"}, {"description", "工作目录 (默认继承)"}}},
                 {"env", {{"type", "object"}, {"description", "环境变量覆盖 (默认 TERM=xterm-256color)"}}},
+                {"reason", {{"type", "string"}, {"description", "操作理由（必填，用于审计）"}}},
             }},
-            {"required", json::array()},
+            {"required", {"reason"}},
         }},
     };
 }
@@ -65,8 +67,9 @@ json tool_schema_terminal_add_cmd() {
                 {"session_id", {{"type", "string"}, {"description", "终端会话 ID"}}},
                 {"input", {{"type", "string"}, {"description", "要输入的字符串 (支持 \u001b[...] 等控制字符)"}}},
                 {"auto_enter", {{"type", "boolean"}, {"default", false}, {"description", "自动追加回车"}}},
+                {"reason", {{"type", "string"}, {"description", "操作理由（必填，用于审计）"}}},
             }},
-            {"required", {"session_id", "input"}},
+            {"required", {"session_id", "input", "reason"}},
         }},
     };
 }
@@ -82,8 +85,9 @@ json tool_schema_terminal_line() {
                 {"session_id", {{"type", "string"}, {"description", "终端会话 ID"}}},
                 {"start_line", {{"type", "integer"}, {"default", 1}, {"description", "起始行 (1-based)"}}},
                 {"end_line", {{"type", "integer"}, {"default", -1}, {"description", "结束行 (-1=到最后)"}}},
+                {"reason", {{"type", "string"}, {"description", "操作理由（必填，用于审计）"}}},
             }},
-            {"required", {"session_id"}},
+            {"required", {"session_id", "reason"}},
         }},
     };
 }
@@ -97,8 +101,9 @@ json tool_schema_terminal_last() {
             {"type", "object"},
             {"properties", {
                 {"session_id", {{"type", "string"}, {"description", "终端会话 ID"}}},
+                {"reason", {{"type", "string"}, {"description", "操作理由（必填，用于审计）"}}},
             }},
-            {"required", {"session_id"}},
+            {"required", {"session_id", "reason"}},
         }},
     };
 }
@@ -114,8 +119,9 @@ json tool_schema_terminal_wait() {
                 {"session_id", {{"type", "string"}, {"description", "终端会话 ID"}}},
                 {"timeout_ms", {{"type", "integer"}, {"default", 115000}, {"description", "最大等待 (最多 115000)"}}},
                 {"mode", {{"type", "string"}, {"enum", {"marker", "prompt"}}, {"default", "marker"}, {"description", "完成检测模式"}}},
+                {"reason", {{"type", "string"}, {"description", "操作理由（必填，用于审计）"}}},
             }},
-            {"required", {"session_id"}},
+            {"required", {"session_id", "reason"}},
         }},
     };
 }
@@ -130,8 +136,9 @@ json tool_schema_terminal_timeout() {
             {"properties", {
                 {"session_id", {{"type", "string"}, {"description", "终端会话 ID"}}},
                 {"wait_ms", {{"type", "integer"}, {"default", 5000}, {"description", "等待毫秒 (最多 115000)"}}},
+                {"reason", {{"type", "string"}, {"description", "操作理由（必填，用于审计）"}}},
             }},
-            {"required", {"session_id"}},
+            {"required", {"session_id", "reason"}},
         }},
     };
 }
@@ -145,8 +152,9 @@ json tool_schema_terminal_kill() {
             {"type", "object"},
             {"properties", {
                 {"session_id", {{"type", "string"}, {"description", "终端会话 ID"}}},
+                {"reason", {{"type", "string"}, {"description", "操作理由（必填，用于审计）"}}},
             }},
-            {"required", {"session_id"}},
+            {"required", {"session_id", "reason"}},
         }},
     };
 }
@@ -156,7 +164,13 @@ json tool_schema_terminal_list() {
         {"name", "terminal_list"},
         {"title", "List Terminals"},
         {"description", "列出终端会话 (ID/存活时间/最后一行)"},
-        {"inputSchema", {{"type", "object"}, {"properties", json::object()}}},
+        {"inputSchema", {
+            {"type", "object"},
+            {"properties", {
+                {"reason", {{"type", "string"}, {"description", "操作理由（必填，用于审计）"}}},
+            }},
+            {"required", {"reason"}},
+        }},
     };
 }
 
@@ -171,8 +185,9 @@ json tool_schema_terminal_resize() {
                 {"session_id", {{"type", "string"}, {"description", "终端会话 ID"}}},
                 {"rows", {{"type", "integer"}, {"description", "行数"}}},
                 {"cols", {{"type", "integer"}, {"description", "列数"}}},
+                {"reason", {{"type", "string"}, {"description", "操作理由（必填，用于审计）"}}},
             }},
-            {"required", {"session_id", "rows", "cols"}},
+            {"required", {"session_id", "rows", "cols", "reason"}},
         }},
     };
 }
@@ -285,6 +300,17 @@ json TerminalMCPServer::handle_call_tool(const json& params, ProgressCb progress
     std::string name = params.value("name", "");
     json args = params.value("arguments", json::object());
 
+    // 审计：检查 reason（所有工具调用必填）
+    std::string reason = args.value("reason", "");
+    if (reason.empty()) {
+        audit_log(name, "MISSING_REASON", args, "rejected");
+        json err = {{"content", json::array({{{"type", "text"}, {"text", "审计拒绝: 必须提供 reason 参数（操作理由）"}}})}, {"isError", true}};
+        return err;
+    }
+
+    // 记录审计日志（执行前）
+    audit_log(name, reason, args, "executing");
+
     if (name == "execute_command") {
         return tool_execute_command(args, progress);
     }
@@ -374,6 +400,9 @@ json TerminalMCPServer::tool_execute_command(const json& args, ProgressCb progre
     };
     LOG_DEBUG("execute_command done: exit={} dur={}ms out={}B err={}B",
               r.exit_code, r.duration_ms, r.stdout_data.size(), r.stderr_data.size());
+    std::string reason = args.value("reason", "");
+    audit_log("execute_command", reason, args, (r.exit_code == 0 ? "ok" : "error"));
+    audit_log("terminal_wait", args.value("reason", ""), args, result.dump());
     return result;
 }
 
@@ -391,7 +420,9 @@ json TerminalMCPServer::tool_terminal_new(const json& args) {
                 {"isError", true}};
     }
     LOG_INFO("terminal_new: {} ({}x{})", sid, rows, cols);
-    return {{"content", json::array({{{"type", "text"}, {"text", sid}}})}, {"isError", false}};
+    std::string reason = args.value("reason", "");
+    audit_log("terminal_new", reason, args, sid.empty() ? "failed" : "ok");
+    return {{"content", json::array({{{"type", "text"}, {"text", sid}}})}, {"isError", sid.empty()}};
 }
 
 json TerminalMCPServer::tool_terminal_add_cmd(const json& args) {
@@ -403,6 +434,8 @@ json TerminalMCPServer::tool_terminal_add_cmd(const json& args) {
     bool auto_enter = args.value("auto_enter", false);
     if (auto_enter) input += "\n";
     session->write(input);
+    std::string reason = args.value("reason", "");
+    audit_log("terminal_add_cmd", reason, args, "ok");
     return {{"content", json::array({{{"type", "text"}, {"text", "ok"}}})}, {"isError", false}};
 }
 
@@ -420,6 +453,7 @@ json TerminalMCPServer::tool_terminal_line(const json& args) {
         out = session->read_lines(a, b);
     }
     if (out.size() > 4096) out = out.substr(out.size() - 4096);
+    audit_log("terminal_line", args.value("reason", ""), args, "ok");
     return {{"content", json::array({{{"type", "text"}, {"text", out}}})}, {"isError", false}};
 }
 
@@ -430,6 +464,7 @@ json TerminalMCPServer::tool_terminal_last(const json& args) {
     }
     std::string out = session->read_last();
     if (out.size() > 4096) out = out.substr(out.size() - 4096);
+    audit_log("terminal_line", args.value("reason", ""), args, "ok");
     return {{"content", json::array({{{"type", "text"}, {"text", out}}})}, {"isError", false}};
 }
 
@@ -457,6 +492,7 @@ json TerminalMCPServer::tool_terminal_wait(const json& args) {
             {"mode", mode},
         }},
     };
+    audit_log("terminal_wait", args.value("reason", ""), args, result.dump());
     return result;
 }
 
@@ -470,12 +506,14 @@ json TerminalMCPServer::tool_terminal_timeout(const json& args) {
     std::this_thread::sleep_for(std::chrono::milliseconds(wait_ms));
     std::string out = session->read_last();
     if (out.size() > 4096) out = out.substr(out.size() - 4096);
+    audit_log("terminal_line", args.value("reason", ""), args, "ok");
     return {{"content", json::array({{{"type", "text"}, {"text", out}}})}, {"isError", false}};
 }
 
 json TerminalMCPServer::tool_terminal_kill(const json& args) {
     std::string sid = args.value("session_id", "");
     terminal_manager_.kill(sid);
+    audit_log("terminal_kill", args.value("reason", ""), args, "closed");
     return {{"content", json::array({{{"type", "text"}, {"text", "closed"}}})}, {"isError", false}};
 }
 
@@ -497,6 +535,7 @@ json TerminalMCPServer::tool_terminal_list(const json& args) {
             {"last_line", last_line},
         });
     }
+    audit_log("terminal_list", args.value("reason", ""), args, "ok");
     return {{"content", json::array({{{"type", "text"}, {"text", arr.dump(2)}}})}, {"isError", false}};
 }
 
@@ -508,12 +547,14 @@ json TerminalMCPServer::tool_terminal_resize(const json& args) {
     int rows = args.value("rows", 24);
     int cols = args.value("cols", 80);
     session->resize(rows, cols);
+    audit_log("terminal_resize", args.value("reason", ""), args, "ok");
     return {{"content", json::array({{{"type", "text"}, {"text", "ok"}}})}, {"isError", false}};
 }
 
 json TerminalMCPServer::tool_get_tools(const json& args, ProgressCb progress) {
     (void)args; (void)progress;
     json text = tools_.dump(2);
+    audit_log("get_tools", args.value("reason", ""), args, "ok");
     return {
         {"content", json::array({{
             {"type", "text"},

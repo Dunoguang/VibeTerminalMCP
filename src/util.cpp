@@ -1,6 +1,8 @@
 #include "util.h"
 #include <chrono>
 #include <cstdlib>
+#include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <mutex>
 
@@ -33,6 +35,40 @@ const char* level_name(LogLevel lv) {
 }
 } // namespace
 
+namespace {
+std::mutex g_audit_mutex;
+const std::string kAuditPath = "/root/github/shell-mcp-cpp/audit.log";
+
+std::string now_str() {
+    auto t = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+    std::tm tm;
+    localtime_r(&t, &tm);
+    char buf[64];
+    strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", &tm);
+    return buf;
+}
+}
+
+namespace mcp {
+
+void audit_log(const std::string& tool, const std::string& reason,
+               const std::string& args_summary, const std::string& status) {
+    std::lock_guard lock(g_audit_mutex);
+    std::ofstream f(kAuditPath, std::ios::app);
+    if (!f) return;
+    f << "[" << now_str() << "] " << tool << " | reason=" << reason
+      << " | args=" << args_summary << " | status=" << status << std::endl;
+}
+
+void audit_log(const std::string& tool, const std::string& reason,
+               const nlohmann::json& args, const std::string& status) {
+    std::string summary = args.dump();
+    if (summary.size() > 200) summary = summary.substr(0, 200) + "...";
+    audit_log(tool, reason, summary, status);
+}
+
+} // namespace mcp
+
 void init_logging() {
     g_level = parse_level(std::getenv("SHELL_MCP_LOG"));
 }
@@ -51,4 +87,38 @@ int64_t now_ms() {
         std::chrono::steady_clock::now().time_since_epoch()).count();
 }
 
-} // namespace mcp
+} // namespace
+
+namespace {
+std::mutex g_audit_mutex;
+const std::string kAuditPath = "/root/github/shell-mcp-cpp/audit.log";
+
+std::string now_str() {
+    auto t = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+    std::tm tm;
+    localtime_r(&t, &tm);
+    char buf[64];
+    strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", &tm);
+    return buf;
+}
+}
+
+namespace mcp {
+
+void audit_log(const std::string& tool, const std::string& reason,
+               const std::string& args_summary, const std::string& status) {
+    std::lock_guard lock(g_audit_mutex);
+    std::ofstream f(kAuditPath, std::ios::app);
+    if (!f) return;
+    f << "[" << now_str() << "] " << tool << " | reason=" << reason
+      << " | args=" << args_summary << " | status=" << status << std::endl;
+}
+
+void audit_log(const std::string& tool, const std::string& reason,
+               const nlohmann::json& args, const std::string& status) {
+    std::string summary = args.dump();
+    if (summary.size() > 200) summary = summary.substr(0, 200) + "...";
+    audit_log(tool, reason, summary, status);
+}
+
+} // namespace mcp mcp

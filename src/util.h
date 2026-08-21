@@ -1,5 +1,6 @@
 #pragma once
 #include <string>
+#include <nlohmann/json.hpp>
 #include <format>
 #include <cstdint>
 
@@ -19,6 +20,12 @@ void log_msg(LogLevel lv, const std::string& msg);
 #define LOG_INFO(...)  ::mcp::log_msg(::mcp::LogLevel::INFO,  std::format(__VA_ARGS__))
 #define LOG_WARN(...)  ::mcp::log_msg(::mcp::LogLevel::WARN,  std::format(__VA_ARGS__))
 #define LOG_ERROR(...) ::mcp::log_msg(::mcp::LogLevel::ERROR, std::format(__VA_ARGS__))
+
+// 审计日志
+void audit_log(const std::string& tool, const std::string& reason,
+               const std::string& args_summary, const std::string& status);
+void audit_log(const std::string& tool, const std::string& reason,
+               const nlohmann::json& args, const std::string& status);
 
 // 毫秒时间戳（monotonic）
 int64_t now_ms();

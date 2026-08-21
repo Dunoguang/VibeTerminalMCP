@@ -1,0 +1,15 @@
+[2026-08-22 03:03:49] execute_command | reason=审计功能测试: 验证命令执行被记录 | args={"command":"echo audit-works","reason":"审计功能测试: 验证命令执行被记录"} | status=executing
+[2026-08-22 03:03:49] execute_command | reason=审计功能测试: 验证命令执行被记录 | args={"command":"echo audit-works","reason":"审计功能测试: 验证命令执行被记录"} | status=ok
+[2026-08-22 03:03:49] terminal_wait | reason=审计功能测试: 验证命令执行被记录 | args={"command":"echo audit-works","reason":"审计功能测试: 验证命令执行被记录"} | status={"content":[{"text":"audit-works\n","type":"text"}],"isError":false,"structuredContent":{"durationMs":16,"exitCode":0,"killed":false,"stderrTruncated":false,"stdoutTruncated":false,"timedOut":false}}
+[2026-08-22 03:03:49] terminal_new | reason=审计测试: 创建终端会话 | args={"reason":"审计测试: 创建终端会话"} | status=executing
+[2026-08-22 03:03:49] terminal_new | reason=审计测试: 创建终端会话 | args={"reason":"审计测试: 创建终端会话"} | status=ok
+[2026-08-22 03:03:50] terminal_kill | reason=审计测试: 清理会话 | args={"reason":"审计测试: 清理会话","session_id":"1eb2f1f3e0d7d0a6"} | status=executing
+[2026-08-22 03:03:50] terminal_kill | reason=审计测试: 清理会话 | args={"reason":"审计测试: 清理会话","session_id":"1eb2f1f3e0d7d0a6"} | status=closed
+[2026-08-22 03:04:32] execute_command | reason=审计功能测试：验证带 reason 的命令执行 | args={"command":"echo \"audit-flow-ok: $(hostname)\"","reason":"审计功能测试：验证带 reason 的命令执行"} | status=executing
+[2026-08-22 03:04:32] execute_command | reason=审计功能测试：验证带 reason 的命令执行 | args={"command":"echo \"audit-flow-ok: $(hostname)\"","reason":"审计功能测试：验证带 reason 的命令执行"} | status=ok
+[2026-08-22 03:04:32] terminal_wait | reason=审计功能测试：验证带 reason 的命令执行 | args={"command":"echo \"audit-flow-ok: $(hostname)\"","reason":"审计功能测试：验证带 reason 的命令执行"} | status={"content":[{"text":"audit-flow-ok: ArchLinux\n","type":"text"}],"isError":false,"structuredContent":{"durationMs":31,"exitCode":0,"killed":false,"stderrTruncated":false,"stdoutTruncated":false,"timedOut":false}}
+[2026-08-22 03:04:32] terminal_new | reason=审计测试: 创建终端会话 | args={"reason":"审计测试: 创建终端会话"} | status=executing
+[2026-08-22 03:04:32] terminal_new | reason=审计测试: 创建终端会话 | args={"reason":"审计测试: 创建终端会话"} | status=ok
+[2026-08-22 03:04:32] terminal_kill | reason=审计测试: 清理会话 | args={"reason":"审计测试: 清理会话","session_id":"e632e684a62af262"} | status=executing
+[2026-08-22 03:04:33] terminal_kill | reason=审计测试: 清理会话 | args={"reason":"审计测试: 清理会话","session_id":"e632e684a62af262"} | status=closed
+[2026-08-22 03:05:17] execute_command | reason=MISSING_REASON | args={"command":"echo x"} | status=rejected
