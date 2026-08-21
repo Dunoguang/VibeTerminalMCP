@@ -43,6 +43,27 @@ std::string random_str() {
     for (auto& c : s) c = chars[dist(rd)];
     return s;
 }
+
+// 剥离 ANSI 转义序列 (CSI: ESC[..字母, OSC: ESC]..BEL, 其他 ESC 单字符)
+std::string strip_ansi(const std::string& in) {
+    std::string out;
+    out.reserve(in.size());
+    for (size_t i = 0; i < in.size(); ++i) {
+        if (in[i] == 0x1b) {
+            if (i + 1 < in.size() && in[i + 1] == '[') {
+                i += 2;
+                while (i < in.size() && !(in[i] >= 0x40 && in[i] <= 0x7e)) ++i;
+            } else if (i + 1 < in.size() && in[i + 1] == ']') {
+                while (i < in.size() && in[i] != 0x07) ++i;
+            } else if (i + 1 < in.size() && in[i + 1] >= 0x40 && in[i + 1] <= 0x5f) {
+                ++i;  // 单字符 ESC 序列
+            }
+        } else {
+            out.push_back(in[i]);
+        }
+    }
+    return out;
+}
 } // namespace
 
 // ---------- TerminalSession ----------
@@ -254,12 +275,11 @@ bool TerminalSession::wait_marker(int64_t timeout_ms, std::string& out, int* exi
             std::string buf;
             {
                 std::unique_lock lock(buf_mutex_);
-                if (buf_cv_.wait_for(lock, std::chrono::milliseconds(200),
-                                     [&] { return buffer_.size() != init_len || !alive_; })) {
-                    buf = buffer_;
-                } else {
-                    continue;
-                }
+                // 无论是否有新输出都检测 (wait_for 只是节流); 修复: 输出稳定时
+                // wait_for 超时 continue 导致检测永远不执行
+                buf_cv_.wait_for(lock, std::chrono::milliseconds(200),
+                                 [&] { return buffer_.size() != init_len || !alive_; });
+                buf = buffer_;
             }
             // 在 buf 中查找 marker_exit + 数字 (从 init_len 之后)
             auto pos = buf.find(marker_exit, init_len);
@@ -306,15 +326,12 @@ bool TerminalSession::wait_prompt(int64_t timeout_ms, std::string& out) {
         std::string buf;
         {
             std::unique_lock lock(buf_mutex_);
-            if (buf_cv_.wait_for(lock, std::chrono::milliseconds(200),
-                                 [&] { return buffer_.size() != init_len || !alive_; })) {
-                buf = buffer_;
-            } else {
-                continue;
-            }
+            buf_cv_.wait_for(lock, std::chrono::milliseconds(200),
+                             [&] { return buffer_.size() != init_len || !alive_; });
+            buf = buffer_;
         }
-        // 取最后 1024 字节找提示符
-        std::string tail = buf.substr(buf.size() < 1024 ? 0 : buf.size() - 1024);
+        // 取最后 1024 字节找提示符 (先剥离 ANSI, 防转义序列干扰尾部字符检测)
+        std::string tail = strip_ansi(buf.substr(buf.size() < 1024 ? 0 : buf.size() - 1024));
         auto nl = tail.rfind('\n');
         std::string last_line = (nl == std::string::npos) ? tail : tail.substr(nl + 1);
         // 常见提示符结尾: $ # > ❯ % (trim 后)

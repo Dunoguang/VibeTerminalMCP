@@ -560,3 +560,105 @@
 [INFO 106562564] shell-mcp-server (C++) starting, mode=http protocol=2025-06-18
 [INFO 106562564] http transport: listening on http://127.0.0.1:8001/mcp
 [INFO 106563830] REQ POST /mcp session= accept=*/*
+[INFO 106700267] REQ GET /sse session= accept=application/json,text/event-stream
+[INFO 106700267] sse stream registered for query session 83b866090681c14b5d332588fd603a63
+[INFO 106700299] REQ POST /message session= accept=application/json
+[INFO 106700299] initialize from ShellMcpCpp 1.0 (protocolVersion=2025-11-25)
+[INFO 106700299] session created: cc614d6279781ccbd6c6363a173666a6 ("3647dab402214edcb5371ac9b8377da8")
+[INFO 106700307] REQ POST /message session= accept=application/json
+[INFO 106700316] REQ POST /message session= accept=application/json
+[INFO 106700337] REQ POST /message session= accept=application/json
+[INFO 106700337] execute_command: timeout=30000ms cmd=echo "host=$(hostname) | kernel=$(uname -r) | server_pid=$(cat /root/github/shell-mcp-cpp/server.pid) | time=$(date +%T)"
+[INFO 106700393] REQ POST /message session= accept=application/json
+[INFO 106700393] execute_command: timeout=30000ms cmd=echo "标准输出行"; echo "错误输出行" >&2; echo "exit=7 测试"; exit 7
+[INFO 106700439] REQ POST /message session= accept=application/json
+[INFO 106700439] execute_command: timeout=30000ms cmd=head -c 200000 /dev/zero | tr '\0' 'x' | wc -c; echo "---64KB 截断测试(100KB 输出)---"; head -c 100000 /dev/zero | tr '\0' 'A'
+[INFO 106711448] REQ POST /message session= accept=application/json
+[INFO 106711449] execute_command: timeout=30000ms cmd=SID=$(curl -s -X POST http://127.0.0.1:8001/mcp -H "Content-Type: application/json" -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"terminal_new","arguments":{"cols":120,"cwd":"/ro
+[INFO 106711506] REQ POST /mcp session= accept=*/*
+[INFO 106711508] terminal 562177cf4b89adc8 created (pid=14297, 24x120)
+[INFO 106711508] terminal_new: 562177cf4b89adc8 (24x120)
+[INFO 106711560] REQ POST /mcp session= accept=*/*
+[INFO 106711594] REQ POST /mcp session= accept=*/*
+[INFO 106724885] REQ POST /message session= accept=application/json
+[INFO 106724885] execute_command: timeout=30000ms cmd=SID=$(cat /tmp/tsid) && echo "=== 1. terminal_line 指定行 ===" && curl -s -X POST http://127.0.0.1:8001/mcp -H "Content-Type: application/json" -d "{\"jsonrpc\":\"2.0\",\"id\":4,\"method\":\"tools/
+[INFO 106724930] REQ POST /mcp session= accept=*/*
+[INFO 106724972] REQ POST /mcp session= accept=*/*
+[INFO 106724991] REQ POST /mcp session= accept=*/*
+[INFO 106730035] REQ POST /mcp session= accept=*/*
+[INFO 106730035] terminal 04c5d99ca20b37c7 created (pid=14317, 24x80)
+[INFO 106730035] terminal_new: 04c5d99ca20b37c7 (24x80)
+[INFO 106730100] REQ POST /mcp session= accept=*/*
+[INFO 106730122] REQ POST /mcp session= accept=*/*
+[INFO 106730162] REQ POST /mcp session= accept=*/*
+[INFO 106764675] shell-mcp-server (C++) starting, mode=http protocol=2025-06-18
+[INFO 106764675] http transport: listening on http://127.0.0.1:8001/mcp
+[INFO 106765201] REQ GET /sse session= accept=application/json,text/event-stream
+[INFO 106765202] sse stream registered for query session 0f274f1817c7f1db47cdf28f9deec683
+[INFO 106765226] REQ POST /message session= accept=application/json
+[INFO 106765226] initialize from ShellMcpCpp 1.0 (protocolVersion=2025-11-25)
+[INFO 106765226] session created: e47b2774fe5e3d3b5fe1a245e7883031 ("67bb6d6f96844f438bdd0307872c4bb1")
+[INFO 106765237] REQ POST /message session= accept=application/json
+[INFO 106765244] REQ POST /message session= accept=application/json
+[INFO 106765905] REQ POST /mcp session= accept=*/*
+[INFO 106765905] terminal 05e22ebc084e8baa created (pid=14370, 24x80)
+[INFO 106765905] terminal_new: 05e22ebc084e8baa (24x80)
+[INFO 106765949] REQ POST /mcp session= accept=*/*
+[INFO 106765963] REQ POST /mcp session= accept=*/*
+[INFO 106783281] REQ POST /message session= accept=application/json
+[INFO 106783282] execute_command: timeout=30000ms cmd=SID=$(curl -s -X POST http://127.0.0.1:8001/mcp -H "Content-Type: application/json" -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"terminal_new","arguments":{}}}' | python3 -c "im
+[INFO 106783326] REQ POST /mcp session= accept=*/*
+[INFO 106783327] terminal 9d031f51ece29c6f created (pid=14379, 24x80)
+[INFO 106783327] terminal_new: 9d031f51ece29c6f (24x80)
+[INFO 106783386] REQ POST /mcp session= accept=*/*
+[INFO 106784437] REQ POST /mcp session= accept=*/*
+[INFO 106811563] shell-mcp-server (C++) starting, mode=http protocol=2025-06-18
+[INFO 106811564] http transport: listening on http://127.0.0.1:8001/mcp
+[INFO 106812028] REQ GET /sse session= accept=application/json,text/event-stream
+[INFO 106812028] sse stream registered for query session b43463213db7d7c23876a5525a7fcdfb
+[INFO 106812056] REQ POST /message session= accept=application/json
+[INFO 106812056] initialize from ShellMcpCpp 1.0 (protocolVersion=2025-11-25)
+[INFO 106812056] session created: a5ae0f869f6a6fdb2d467e6310f1fa75 ("18bcadd1a4c04da8b302cfbc36696673")
+[INFO 106812070] REQ POST /message session= accept=application/json
+[INFO 106812080] REQ POST /message session= accept=application/json
+[INFO 106812809] REQ POST /mcp session= accept=*/*
+[INFO 106812811] terminal 08c5a7885227f056 created (pid=14429, 24x80)
+[INFO 106812811] terminal_new: 08c5a7885227f056 (24x80)
+[INFO 106812861] REQ POST /mcp session= accept=*/*
+[INFO 106812888] REQ POST /mcp session= accept=*/*
+[INFO 106825475] REQ POST /message session= accept=application/json
+[INFO 106825475] execute_command: timeout=30000ms cmd=echo "=== 回归: marker 模式 ===" && SID=$(curl -s -X POST http://127.0.0.1:8001/mcp -H "Content-Type: application/json" -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"terminal
+[INFO 106825525] REQ POST /mcp session= accept=*/*
+[INFO 106825529] terminal 0784df3eb883b83e created (pid=14438, 24x80)
+[INFO 106825530] terminal_new: 0784df3eb883b83e (24x80)
+[INFO 106825574] REQ POST /mcp session= accept=*/*
+[INFO 106825606] REQ POST /mcp session= accept=*/*
+[INFO 106825669] REQ POST /mcp session= accept=*/*
+[INFO 106825728] REQ POST /mcp session= accept=*/*
+[INFO 106826769] REQ POST /mcp session= accept=*/*
+[INFO 106826799] REQ POST /mcp session= accept=*/*
+[INFO 106826866] REQ POST /mcp session= accept=*/*
+[INFO 106827018] terminal 0784df3eb883b83e closed
+[INFO 106827018] terminal 0784df3eb883b83e closed
+[INFO 106849784] REQ POST /message session= accept=application/json
+[INFO 106849785] execute_command: timeout=30000ms cmd=echo "=== 1. marker 模式正常命令 ===" && SID=$(curl -s -X POST http://127.0.0.1:8001/mcp -H "Content-Type: application/json" -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"t
+[INFO 106849843] REQ POST /mcp session= accept=*/*
+[INFO 106849844] terminal c2594de715a65444 created (pid=14456, 24x80)
+[INFO 106849844] terminal_new: c2594de715a65444 (24x80)
+[INFO 106849871] REQ POST /mcp session= accept=*/*
+[INFO 106849904] REQ POST /mcp session= accept=*/*
+[INFO 106849963] REQ POST /mcp session= accept=*/*
+[INFO 106849964] terminal 58b37be37c263c3b created (pid=14464, 24x80)
+[INFO 106849964] terminal_new: 58b37be37c263c3b (24x80)
+[INFO 106850017] REQ POST /mcp session= accept=*/*
+[INFO 106851052] REQ POST /mcp session= accept=*/*
+[INFO 106851053] signal_fg: SIG2 to pgid 14467 (bash pid 14464)
+[INFO 106851382] REQ POST /mcp session= accept=*/*
+[INFO 106853234] REQ POST /mcp session= accept=*/*
+[INFO 106853259] REQ POST /mcp session= accept=*/*
+[INFO 106853497] REQ POST /mcp session= accept=*/*
+[INFO 106853648] terminal c2594de715a65444 closed
+[INFO 106853648] terminal c2594de715a65444 closed
+[INFO 106853687] REQ POST /mcp session= accept=*/*
+[INFO 106853837] terminal 58b37be37c263c3b closed
+[INFO 106853837] terminal 58b37be37c263c3b closed
