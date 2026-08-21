@@ -139,10 +139,8 @@ public:
                 if (heartbeat) {
                     if (!cv_.wait_for(lock, std::chrono::seconds(kSseHeartbeatSec),
                                       [&] { return !events_.empty() || closed_; })) {
-                        // 心跳: 对齐原版 ping JSON (event: message)
-                        json ping = {{"type", "ping"}, {"timestamp", now_ms() / 1000}};
-                        std::string pf = sse_frame("message", ping.dump());
-                        if (!sink.write(pf.data(), pf.size())) return false;
+                        // 心跳: SSE 注释行 (客户端必须忽略, 非 JSON-RPC 事件会解析炸)
+                        if (!sink.write(":\n", 2)) return false;
                         continue;
                     }
                 } else {
@@ -433,16 +431,14 @@ private:
         }
         if (!check_origin(req, res)) return;
         std::string sid = req.get_header_value("Mcp-Session-Id");
-        // 无 session: 复刻原版 shell-mcp GET /sse 流程 —
-        // connected 事件 → endpoint(/message?sessionId=uuid) → server_info → 保持流+心跳
+        // 无 session: SSE 流只发 endpoint (老式握手) + JSON-RPC 消息
+        // 铁律: 客户端把流上所有非 endpoint 事件当 JSON-RPC 解析 (RikkaHub 源码),
+        // connected/ping 等非 JSON-RPC 事件会让客户端 SerializationException
         if (sid.empty()) {
             auto stream = std::make_shared<SseStream>();
-            // 1. connected 确认事件
-            stream->push_custom("connected",
-                json{{"status", "connected"}, {"timestamp", now_ms() / 1000}}.dump());
-            // 2. endpoint 事件: 告知客户端 POST 地址 (带 sessionId, 对齐原版)
+            // 1. endpoint 事件: 告知客户端 POST 地址 (带 sessionId, 对齐原版)
             stream->push_endpoint("/message?sessionId=" + random_session_id());
-            // 3. server_info JSON-RPC 消息 (id: server_info, 对齐原版)
+            // 2. server_info JSON-RPC 消息 (id: server_info, 合法 JSON-RPC)
             json si = {
                 {"jsonrpc", "2.0"},
                 {"id", "server_info"},

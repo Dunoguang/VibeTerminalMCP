@@ -131,3 +131,18 @@
 [INFO 99863494] session created: bfdc93e3503792c96012af6cdb857bae (1)
 [INFO 99863597] REQ POST /message session= accept=*/*
 [INFO 99863597] execute_command: timeout=30000ms cmd=echo legacy-ok
+[INFO 99889498] REQ GET /sse session= accept=application/json,text/event-stream
+[INFO 99889517] REQ POST /message session= accept=application/json
+[INFO 99889517] initialize from ShellMcpCpp 1.0 (protocolVersion=2025-11-25)
+[INFO 99889517] session created: 159a662a9c2cb1021d1f77f7b05a835e ("5a34a7d56f154970bc243816cf1d6e69")
+[INFO 99899750] REQ GET /sse session= accept=application/json,text/event-stream
+[INFO 99899759] REQ POST /message session= accept=application/json
+[INFO 99899759] initialize from ShellMcpCpp 1.0 (protocolVersion=2025-11-25)
+[INFO 99899760] session created: b1ff3068185384d227ffdc7f288dc35e ("a6c6ddcda8784060993c82a6a45d15e3")
+[INFO 100029791] shell-mcp-server (C++) starting, mode=http protocol=2025-06-18
+[INFO 100029792] http transport: listening on http://127.0.0.1:8001/mcp
+[INFO 100030845] REQ GET /sse session= accept=text/event-stream
+[INFO 100032844] REQ GET /sse session= accept=text/event-stream
+[INFO 100034849] REQ POST /message session= accept=*/*
+[INFO 100034849] initialize from rikkahub-sim 1 (protocolVersion=2025-11-25)
+[INFO 100034849] session created: 666d50b62b851d63b6b071f28189b6f3 (1)
