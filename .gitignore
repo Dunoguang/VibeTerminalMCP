@@ -1,3 +1,4 @@
 build/
 server.log
 server.pid
+audit.log

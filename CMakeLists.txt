@@ -14,7 +14,6 @@ find_package(nlohmann_json REQUIRED)
 add_executable(shell-mcp-server
   src/main.cpp
   src/server.cpp
-  src/process_runner.cpp
   src/terminal.cpp
   src/util.cpp
   src/stdio_transport.cpp

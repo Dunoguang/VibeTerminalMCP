@@ -35,7 +35,6 @@ private:
     json handle_discover();  // 2026-07-28 预留
 
     // 工具实现
-    json tool_execute_command(const json& args, ProgressCb progress);
     json tool_terminal_new(const json& args);
     json tool_terminal_add_cmd(const json& args);
     json tool_terminal_line(const json& args);
