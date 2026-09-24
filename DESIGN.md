@@ -1,4 +1,4 @@
-# Shell MCP Server (C++) 设计文档 v0.1
+# VibeTerminalMCP (C++) 设计文档 v0.1
 
 ## 1. 目标
 替代 /root/shell-mcp（Python 单文件版），解决三大执行引擎缺陷：
@@ -13,7 +13,7 @@
 - C++23（-std=c++23，g++ 16.1.1 / clang 22.1.8 完整支持）/ CMake ≥3.16 / nlohmann-json 3.12（系统包，无 vendoring）
 - 手写 stdio JSON-RPC 2.0（MCP stdio transport），协议面小不引 SDK
 - 零额外运行时依赖；SSH 接口留桩（纯本地，后续 libssh）
-- 构建：CMake + make，产物单二进制 `shell-mcp-server`
+- 构建：CMake + make，产物单二进制 `vibeterminalmcp-server`
 
 ## 3. 架构
 

@@ -3,7 +3,7 @@
 # 用法: ./start_mcp.sh [start|stop|restart|status]
 
 DIR="/root/github/VibeTerminalMCP"
-BIN="$DIR/build/shell-mcp-server"
+BIN="$DIR/build/vibeterminalmcp-server"
 PID_FILE="$DIR/server.pid"
 LOG="$DIR/server.log"
 HOST="127.0.0.1"

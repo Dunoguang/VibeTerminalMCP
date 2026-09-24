@@ -25,7 +25,7 @@ int main(int argc, char* argv[]) {
         else if (arg == "--port" || arg == "-p") port = std::stoi(next());
         else if (arg == "--audit-log") set_audit_path(next());
         else if (arg == "--help" || arg == "-h") {
-            std::cerr << "Usage: shell-mcp-server [--mode stdio|http] "
+            std::cerr << "Usage: vibeterminalmcp-server [--mode stdio|http] "
                          "[--host HOST] [--port PORT] [--audit-log PATH]\n"
                          "  --audit-log  audit log path "
                          "(default: <exe dir>/audit.log; env "
@@ -43,7 +43,7 @@ int main(int argc, char* argv[]) {
         transport = make_stdio_transport(server);
     }
 
-    LOG_INFO("shell-mcp-server (C++) starting, mode={} protocol=2025-06-18", mode);
+    LOG_INFO("vibeterminalmcp-server (C++) starting, mode={} protocol=2025-06-18", mode);
     LOG_INFO("audit log: {}", audit_path());
     return transport->run();
 }

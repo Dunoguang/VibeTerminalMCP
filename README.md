@@ -50,20 +50,20 @@ cmake -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build -j$(nproc)
 ```
 
-产物：`build/shell-mcp-server`（单文件，1.2 MB）。
+产物：`build/vibeterminalmcp-server`（单文件，1.2 MB）。
 
 ## Run / 运行
 
 stdio（给本地 MCP 客户端直接拉起）：
 
 ```bash
-./build/shell-mcp-server --mode stdio
+./build/vibeterminalmcp-server --mode stdio
 ```
 
 HTTP（Streamable HTTP + 老式 SSE）：
 
 ```bash
-./build/shell-mcp-server --mode http --host 127.0.0.1 --port 8001
+./build/vibeterminalmcp-server --mode http --host 127.0.0.1 --port 8001
 # endpoint: http://127.0.0.1:8001/mcp   (SSE: /sse, /message)
 ```
 
@@ -82,14 +82,14 @@ systemd（附件模式，日志 append 到 `server.log`）：
 
 ```ini
 [Unit]
-Description=Shell MCP Server (C++)
+Description=VibeTerminalMCP - persistent pty terminal sessions over MCP
 After=network.target
 
 [Service]
 Type=simple
 User=root
 WorkingDirectory=/root/github/VibeTerminalMCP
-ExecStart=/root/github/VibeTerminalMCP/build/shell-mcp-server \
+ExecStart=/root/github/VibeTerminalMCP/build/vibeterminalmcp-server \
   --mode http --host 127.0.0.1 --port 8001
 Restart=on-failure
 RestartSec=2

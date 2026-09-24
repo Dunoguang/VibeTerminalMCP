@@ -280,7 +280,7 @@ json TerminalMCPServer::handle_initialize(const json& params) {
     return {
         {"protocolVersion", negotiated},
         {"capabilities", {{"tools", {{"listChanged", false}}}}},
-        {"serverInfo", {{"name", "shell-mcp-server"}, {"title", "Shell MCP Server (C++)"}, {"version", "0.1.0"}}},
+        {"serverInfo", {{"name", "vibeterminalmcp"}, {"title", "VibeTerminalMCP (C++)"}, {"version", "0.1.0"}}},
     };
 }
 
