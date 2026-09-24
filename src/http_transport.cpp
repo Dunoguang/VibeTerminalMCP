@@ -399,13 +399,13 @@ private:
                     if (it != sse_by_query_session_.end()) stream = it->second.lock();
                 }
                 if (stream && !stream->closed()) {
-                    stream->push(resp->dump());
+                    stream->push(safe_dump(*resp));
                     LOG_DEBUG("response pushed to sse stream for query session {}", qsid);
                 }
             }
         }
         res.status = 200;
-        res.set_content(resp ? resp->dump() : "{}", "application/json");
+        res.set_content(resp ? safe_dump(*resp) : "{}", "application/json");
     }
 
     // POST SSE 响应流: progress 通知(可多个) + 最终响应, 响应后关流
@@ -432,11 +432,11 @@ private:
                     };
                     // total 为 null 时移除（规范: total 可选）
                     if (note["params"]["total"].is_null()) note["params"].erase("total");
-                    stream->push(note.dump());
+                    stream->push(safe_dump(note));
                 };
                 auto resp = server_.handle_request(req_json, cb);
                 if (resp.has_value()) {
-                    stream->push(resp->dump(), true /* is_response: 发完关流 */);
+                    stream->push(safe_dump(*resp), true /* is_response: 发完关流 */);
                 } else {
                     stream->close();
                 }
@@ -444,7 +444,7 @@ private:
                 LOG_ERROR("sse exec thread error: {}", e.what());
                 json err = {{"jsonrpc", "2.0"}, {"id", nullptr},
                             {"error", {{"code", -32603}, {"message", std::string("Internal error: ") + e.what()}}}};
-                stream->push(err.dump(), true);
+                stream->push(safe_dump(err), true);
             }
         }).detach();
 

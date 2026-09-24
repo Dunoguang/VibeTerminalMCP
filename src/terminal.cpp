@@ -44,26 +44,6 @@ std::string random_str() {
     return s;
 }
 
-// 剥离 ANSI 转义序列 (CSI: ESC[..字母, OSC: ESC]..BEL, 其他 ESC 单字符)
-std::string strip_ansi(const std::string& in) {
-    std::string out;
-    out.reserve(in.size());
-    for (size_t i = 0; i < in.size(); ++i) {
-        if (in[i] == 0x1b) {
-            if (i + 1 < in.size() && in[i + 1] == '[') {
-                i += 2;
-                while (i < in.size() && !(in[i] >= 0x40 && in[i] <= 0x7e)) ++i;
-            } else if (i + 1 < in.size() && in[i + 1] == ']') {
-                while (i < in.size() && in[i] != 0x07) ++i;
-            } else if (i + 1 < in.size() && in[i + 1] >= 0x40 && in[i + 1] <= 0x5f) {
-                ++i;  // 单字符 ESC 序列
-            }
-        } else {
-            out.push_back(in[i]);
-        }
-    }
-    return out;
-}
 } // namespace
 
 // ---------- TerminalSession ----------

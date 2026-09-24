@@ -30,14 +30,14 @@ public:
                     {"id", nullptr},
                     {"error", {{"code", -32700}, {"message", std::string("Parse error: ") + e.what()}}},
                 };
-                std::cout << err.dump() << '\n' << std::flush;
+                std::cout << safe_dump(err) << '\n' << std::flush;
                 continue;
             }
 
             auto resp = server_.handle_request(req);
             if (resp.has_value()) {
                 // stdout 只允许协议帧；单行输出
-                std::cout << resp->dump() << '\n' << std::flush;
+                std::cout << safe_dump(*resp) << '\n' << std::flush;
             }
         }
         LOG_INFO("stdin closed (EOF), shutting down");

@@ -2,6 +2,7 @@
 #include "terminal.h"
 #include "util.h"
 
+#include <utility>
 #include <optional>
 #include <thread>
 #include <chrono>
@@ -13,6 +14,20 @@ namespace {
 // 本项目支持的协议版本
 constexpr const char* kProtocolVersion = "2025-06-18";
 const std::vector<std::string> kSupportedVersions = {"2025-11-25", "2025-06-18", "2024-11-05"};
+
+// max bytes of one terminal read returned to the client
+constexpr std::size_t kMaxOutputBytes = 4096;
+// truncation marker = "===4KB" + U+622A U+65AD + "===" + LF
+const std::string kTruncMarker = "===4KB\xe6\x88\xaa\xe6\x96\xad===\n";
+
+// sanitize UTF-8/ANSI, then clip tail and mark truncation
+std::string finalize_output(std::string out) {
+    out = sanitize_output(std::move(out));
+    if (clip_tail_utf8(out, kMaxOutputBytes)) {
+        out.insert(0, kTruncMarker);
+    }
+    return out;
+}
 
 
 
@@ -360,7 +375,7 @@ json TerminalMCPServer::tool_terminal_line(const json& args) {
     } else {
         out = session->read_lines(a, b);
     }
-    if (out.size() > 4096) out = out.substr(out.size() - 4096);
+    out = finalize_output(std::move(out));
     audit_log("terminal_line", args.value("reason", ""), args, "ok");
     return {{"content", json::array({{{"type", "text"}, {"text", out}}})}, {"isError", false}};
 }
@@ -371,7 +386,7 @@ json TerminalMCPServer::tool_terminal_last(const json& args) {
         return {{"content", json::array({{{"type", "text"}, {"text", "Session not found"}}})}, {"isError", true}};
     }
     std::string out = session->read_last();
-    if (out.size() > 4096) out = out.substr(out.size() - 4096);
+    out = finalize_output(std::move(out));
     audit_log("terminal_line", args.value("reason", ""), args, "ok");
     return {{"content", json::array({{{"type", "text"}, {"text", out}}})}, {"isError", false}};
 }
@@ -391,6 +406,7 @@ json TerminalMCPServer::tool_terminal_wait(const json& args) {
     } else {
         ok = session->wait_marker(timeout_ms, out, &ec);
     }
+    out = finalize_output(std::move(out));
     json result = {
         {"content", json::array({{{"type", "text"}, {"text", out}}})},
         {"isError", false},
@@ -400,7 +416,7 @@ json TerminalMCPServer::tool_terminal_wait(const json& args) {
             {"mode", mode},
         }},
     };
-    audit_log("terminal_wait", args.value("reason", ""), args, result.dump());
+    audit_log("terminal_wait", args.value("reason", ""), args, safe_dump(result));
     return result;
 }
 
@@ -413,7 +429,7 @@ json TerminalMCPServer::tool_terminal_timeout(const json& args) {
     if (wait_ms > 115000) wait_ms = 115000;
     std::this_thread::sleep_for(std::chrono::milliseconds(wait_ms));
     std::string out = session->read_last();
-    if (out.size() > 4096) out = out.substr(out.size() - 4096);
+    out = finalize_output(std::move(out));
     audit_log("terminal_line", args.value("reason", ""), args, "ok");
     return {{"content", json::array({{{"type", "text"}, {"text", out}}})}, {"isError", false}};
 }
@@ -435,6 +451,7 @@ json TerminalMCPServer::tool_terminal_list(const json& args) {
         auto nl = all.rfind('\n');
         last_line = (nl == std::string::npos) ? all : all.substr(nl + 1);
         if (last_line.size() > 200) last_line = last_line.substr(last_line.size() - 200);
+        last_line = sanitize_output(last_line);
         arr.push_back({
             {"id", s->id()},
             {"pid", s->pid()},
@@ -444,7 +461,7 @@ json TerminalMCPServer::tool_terminal_list(const json& args) {
         });
     }
     audit_log("terminal_list", args.value("reason", ""), args, "ok");
-    return {{"content", json::array({{{"type", "text"}, {"text", arr.dump(2)}}})}, {"isError", false}};
+    return {{"content", json::array({{{"type", "text"}, {"text", safe_dump(arr, 2)}}})}, {"isError", false}};
 }
 
 json TerminalMCPServer::tool_terminal_resize(const json& args) {
