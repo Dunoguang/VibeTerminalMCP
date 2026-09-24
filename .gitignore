@@ -2,3 +2,6 @@ build/
 server.log
 server.pid
 audit.log
+core
+__pycache__/
+*.o
