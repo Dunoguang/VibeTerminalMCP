@@ -45,7 +45,7 @@
 - 结果带 resultType: "complete" | "inputRequired"（MRTR 多轮交互）
 - subscriptions/listen 替代 resources/subscribe；-32002 改为 -32602
 
-## 7. 本项目决策（shell-mcp-cpp）
+## 7. 本项目决策（VibeTerminalMCP）
 - **主协议：2025-06-18**（Claude Desktop/Cursor/Cherry Studio 等主流客户端均此版本）
 - 接受 initialize 的 2024-11-05 / 2025-06-18，响应回 2025-06-18
 - 实现 ping / progress（长任务进度）/ notifications/cancelled 接收（映射 task_cancel）

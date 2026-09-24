@@ -94,7 +94,7 @@ pending ──▶ running ──▶ done
 
 ## 9. 目录结构
 ```
-/root/github/shell-mcp-cpp/
+/root/github/VibeTerminalMCP/
 ├── CMakeLists.txt
 ├── DESIGN.md
 ├── README.md

@@ -1,8 +1,8 @@
 #!/bin/bash
-# shell-mcp-cpp 管理脚本 (start/stop/restart/status)
+# VibeTerminalMCP 管理脚本 (start/stop/restart/status)
 # 用法: ./start_mcp.sh [start|stop|restart|status]
 
-DIR="/root/github/shell-mcp-cpp"
+DIR="/root/github/VibeTerminalMCP"
 BIN="$DIR/build/shell-mcp-server"
 PID_FILE="$DIR/server.pid"
 LOG="$DIR/server.log"

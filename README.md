@@ -88,14 +88,14 @@ After=network.target
 [Service]
 Type=simple
 User=root
-WorkingDirectory=/root/github/shell-mcp-cpp
-ExecStart=/root/github/shell-mcp-cpp/build/shell-mcp-server \
+WorkingDirectory=/root/github/VibeTerminalMCP
+ExecStart=/root/github/VibeTerminalMCP/build/shell-mcp-server \
   --mode http --host 127.0.0.1 --port 8001
 Restart=on-failure
 RestartSec=2
 Environment=SHELL_MCP_LOG=info
-StandardOutput=append:/root/github/shell-mcp-cpp/server.log
-StandardError=append:/root/github/shell-mcp-cpp/server.log
+StandardOutput=append:/root/github/VibeTerminalMCP/server.log
+StandardError=append:/root/github/VibeTerminalMCP/server.log
 
 [Install]
 WantedBy=multi-user.target
