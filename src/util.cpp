@@ -186,7 +186,7 @@ std::string safe_dump(const nlohmann::json& j, int indent) {
 // ---- audit log ----
 namespace {
 std::mutex g_audit_mutex;
-const std::string kAuditPath = "/root/github/shell-mcp-cpp/audit.log";
+std::string g_audit_path;   // empty = auto (exe dir or env)
 
 std::string now_str() {
     auto t = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
@@ -196,12 +196,40 @@ std::string now_str() {
     strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", &tm);
     return buf;
 }
+
+std::string resolve_audit_path() {
+    if (!g_audit_path.empty()) return g_audit_path;
+    const char* env = std::getenv("SHELL_MCP_AUDIT_LOG");
+    if (env && *env) return std::string(env);
+    std::error_code ec;
+    auto dir = exe_dir();
+    if (!dir.empty()) return (dir / "audit.log").string();
+    return "audit.log";
+}
 } // namespace
+
+std::filesystem::path exe_dir() {
+    std::error_code ec;
+    auto p = std::filesystem::read_symlink("/proc/self/exe", ec);
+    if (ec || p.empty()) return std::filesystem::current_path(ec);
+    return p.parent_path();
+}
+
+void set_audit_path(const std::string& path) {
+    std::lock_guard lock(g_audit_mutex);
+    g_audit_path = path;
+}
+
+std::string audit_path() {
+    std::lock_guard lock(g_audit_mutex);
+    return resolve_audit_path();
+}
 
 void audit_log(const std::string& tool, const std::string& reason,
                const std::string& args_summary, const std::string& status) {
+    const std::string path = audit_path();
     std::lock_guard lock(g_audit_mutex);
-    std::ofstream f(kAuditPath, std::ios::app);
+    std::ofstream f(path, std::ios::app);
     if (!f) return;
     f << "[" << now_str() << "] " << tool << " | reason=" << reason
       << " | args=" << args_summary << " | status=" << status << std::endl;

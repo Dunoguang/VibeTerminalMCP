@@ -1,6 +1,7 @@
 #pragma once
 #include <cstddef>
 #include <cstdint>
+#include <filesystem>
 #include <format>
 #include <nlohmann/json.hpp>
 #include <string>
@@ -30,6 +31,13 @@ void audit_log(const std::string& tool, const std::string& reason,
 
 // monotonic milliseconds
 int64_t now_ms();
+
+// directory holding this executable (/proc/self/exe), falls back to cwd
+std::filesystem::path exe_dir();
+// resolved audit log path (default: <exe_dir>/audit.log)
+std::string audit_path();
+// override audit log path (CLI --audit-log); empty = auto
+void set_audit_path(const std::string& path);
 
 // ---- output hygiene ----
 // drop ANSI/VT escape sequences + non printable control chars

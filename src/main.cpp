@@ -23,8 +23,13 @@ int main(int argc, char* argv[]) {
         if (arg == "--mode" || arg == "-m") mode = next();
         else if (arg == "--host") host = next();
         else if (arg == "--port" || arg == "-p") port = std::stoi(next());
+        else if (arg == "--audit-log") set_audit_path(next());
         else if (arg == "--help" || arg == "-h") {
-            std::cerr << "Usage: shell-mcp-server [--mode stdio|http] [--host HOST] [--port PORT]\n";
+            std::cerr << "Usage: shell-mcp-server [--mode stdio|http] "
+                         "[--host HOST] [--port PORT] [--audit-log PATH]\n"
+                         "  --audit-log  audit log path "
+                         "(default: <exe dir>/audit.log; env "
+                         "SHELL_MCP_AUDIT_LOG also honored)\n";
             return 0;
         }
     }
@@ -39,5 +44,6 @@ int main(int argc, char* argv[]) {
     }
 
     LOG_INFO("shell-mcp-server (C++) starting, mode={} protocol=2025-06-18", mode);
+    LOG_INFO("audit log: {}", audit_path());
     return transport->run();
 }

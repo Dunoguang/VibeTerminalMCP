@@ -67,6 +67,17 @@ HTTP（Streamable HTTP + 老式 SSE）：
 # endpoint: http://127.0.0.1:8001/mcp   (SSE: /sse, /message)
 ```
 
+命令行参数 / CLI options：
+
+| Flag | Default | 说明 |
+|---|---|---|
+| `--mode stdio\|http` | `stdio` | 传输方式 |
+| `--host HOST` | `127.0.0.1` | HTTP 监听地址 |
+| `--port PORT` | `8000` | HTTP 监听端口 |
+| `--audit-log PATH` | `<程序所在目录>/audit.log` | 审计日志路径，不写死任何绝对路径 |
+
+审计日志默认跟随可执行文件所在目录（通过 `/proc/self/exe` 解析，解析失败时退回当前目录），因此整个程序拿到哪儿都能跑，没有任何编译期写死的路径。
+
 systemd（附件模式，日志 append 到 `server.log`）：
 
 ```ini
@@ -89,6 +100,9 @@ StandardError=append:/root/github/shell-mcp-cpp/server.log
 [Install]
 WantedBy=multi-user.target
 ```
+
+想固定审计日志位置，就在 ExecStart 末尾追加
+`--audit-log /path/to/audit.log`；不加则写在程序目录。
 
 客户端配置（通用 MCP JSON）：
 
@@ -128,7 +142,8 @@ HTTP 500 与一段 SDK 堆栈，看起来像"服务挂了"。
 - `terminal_wait` 默认用 marker 模式：注入
   `echo __DONE_xxx__:$?` 探测命令结束并解析退出码。
 - 每个工具调用都必须带 `reason` 参数，否则直接拒绝。
-  审计记录写入 `audit.log`（一行一次调用）。
+  审计记录写在程序所在目录的 `audit.log`（一行一次调用），
+  可用 `--audit-log PATH` 或环境变量 `SHELL_MCP_AUDIT_LOG` 覆盖。
 
 ## 布局 / Layout
 
@@ -147,7 +162,7 @@ DESIGN.md PROTOCOL.md   设计与协议笔记
 
 - 会话不持久化：重启丢会话（按设计）。
 - 只有"拉"模式：`terminal_wait` 上限 115 秒，没有流式推送。
-- 日志不轮转：`audit.log` 记录返回正文，长跑请自行 logrotate。
+- 日志不轮转：`audit.log` / `server.log` 只增不减，长跑请自行 logrotate。
 - 没有"raw 执行"模式：命令会经过 pty 回显。
 
 ## License
